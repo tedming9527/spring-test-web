@@ -12,15 +12,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17 via jenv
-        run: |
-          export PATH="$HOME/.jenv/bin:$PATH"
-          eval "$(jenv init -)"
-          JAVA_HOME="$(jenv prefix 17)"
-          echo "JAVA_HOME=$JAVA_HOME" >> $GITHUB_ENV
-          echo "$JAVA_HOME/bin" >> $GITHUB_PATH
-          java -version
-
       - name: Build with Maven
         run: mvn clean package -DskipTests
 

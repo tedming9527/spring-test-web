@@ -1,0 +1,11 @@
+### 批量创建用户（循环 100 次）
+# @name createUsers_100
+POST http://localhost:8080/users
+Content-Type: application/json
+
+{
+  "name": "{{$random.name.fullName}}",
+  "age": {{$randomInt 1 100}},
+  "email": "{{$random.email}}",
+  "birthDay": "{{$isoTimestamp "yyyy-MM-dd"}}"
+}

@@ -28,5 +28,6 @@ jobs:
           docker run -d \
             --name spring-test-web \
             --restart always \
+            -e DB_HOST=host.docker.internal \
             -p 8080:8080 \
             spring-test-web

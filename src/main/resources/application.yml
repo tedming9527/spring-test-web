@@ -2,7 +2,7 @@ spring:
   application:
     name: spring-test-web
   datasource:
-    url: jdbc:mysql://localhost:3306/springtestweb?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://${DB_HOST:localhost}:3306/springtestweb?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
     username: root
     password:
     driver-class-name: com.mysql.cj.jdbc.Driver

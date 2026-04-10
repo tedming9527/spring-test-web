@@ -7,6 +7,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class HelloController {
   @GetMapping("/hello")
   public String hello() {
-    return "Hello Spring Boot 成33333, I use GitHub Actions to CI/CD!";
+    return "Hello Spring Boot 成2342342432, I use GitHub Actions to CI/CD!";
   }
 }

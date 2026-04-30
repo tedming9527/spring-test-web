@@ -27,7 +27,7 @@
  [x] 前端静态文件托管（如 resources/static）
 
 ## 3. 集成与部署
-- [ ] Dockerfile 多阶段构建，集成前后端
+ [x] Dockerfile 多阶段构建，集成前后端
 - [ ] Docker 镜像测试，确保 8080 端口可访问
 - [ ] 文档与使用说明，说明 SSO 流程和 token 机制
 

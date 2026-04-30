@@ -23,7 +23,7 @@
  [x] 内存用户校验逻辑（如 admin/123456）
  [x] 登录成功生成并返回 token（如 JWT），失败返回 401
  [x] 新增 token 校验拦截器，所有受保护接口需校验 token
-- [ ] 支持 CORS 跨域
+ [x] 支持 CORS 跨域
 - [ ] 前端静态文件托管（如 resources/static）
 
 ## 3. 集成与部署

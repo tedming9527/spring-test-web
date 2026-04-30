@@ -19,9 +19,9 @@
  [x] API 错误处理与提示
  [x] 构建产物输出到 build/
 ## 2. 后端（Spring Boot）
-- [ ] 新增认证中心 Controller（/auth/login POST），接收 JSON
-- [ ] 内存用户校验逻辑（如 admin/123456）
-- [ ] 登录成功生成并返回 token（如 JWT），失败返回 401
+ [x] 新增认证中心 Controller（/auth/login POST），接收 JSON
+ [x] 内存用户校验逻辑（如 admin/123456）
+ [x] 登录成功生成并返回 token（如 JWT），失败返回 401
 - [ ] 新增 token 校验拦截器，所有受保护接口需校验 token
 - [ ] 支持 CORS 跨域
 - [ ] 前端静态文件托管（如 resources/static）

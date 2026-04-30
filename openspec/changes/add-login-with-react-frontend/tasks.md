@@ -17,7 +17,7 @@
  [x] 路由与跳转逻辑（未登录自动跳转到 /auth/login）
  [x] 支持模拟多个子系统页面（如 /sys1、/sys2），均需统一登录
  [x] API 错误处理与提示
-- [ ] 构建产物输出到 build/
+ [x] 构建产物输出到 build/
 ## 2. 后端（Spring Boot）
 - [ ] 新增认证中心 Controller（/auth/login POST），接收 JSON
 - [ ] 内存用户校验逻辑（如 admin/123456）

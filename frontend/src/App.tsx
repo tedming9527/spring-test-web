@@ -1,4 +1,4 @@
-import { useState } from "react";
+// import { useState } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -11,9 +11,9 @@ import WelcomePage from "./pages/WelcomePage";
 import Sys1Page from "./pages/Sys1Page";
 import Sys2Page from "./pages/Sys2Page";
 import React from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "./assets/vite.svg";
-import heroImg from "./assets/hero.png";
+// import reactLogo from "./assets/react.svg";
+// import viteLogo from "./assets/vite.svg";
+// import heroImg from "./assets/hero.png";
 import "./App.css";
 
 // 路由守卫组件

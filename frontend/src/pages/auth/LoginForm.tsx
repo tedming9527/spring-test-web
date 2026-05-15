@@ -30,12 +30,17 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin, loading, error }) => {
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-10 w-full max-w-sm shadow-md">
       <div className="text-center mb-7">
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-1">欢迎登录</h1>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
+          欢迎登录
+        </h1>
         <p className="text-sm text-gray-400">Spring Demo 管理系统</p>
       </div>
       <form onSubmit={handleSubmit}>
         <div className="flex flex-col gap-1.5 mb-4">
-          <label className="text-sm font-medium text-gray-900 dark:text-gray-100" htmlFor="username">
+          <label
+            className="text-sm font-medium text-gray-900 dark:text-gray-100"
+            htmlFor="username"
+          >
             用户名
           </label>
           <input
@@ -49,7 +54,10 @@ const LoginForm: React.FC<LoginFormProps> = ({ onLogin, loading, error }) => {
           />
         </div>
         <div className="flex flex-col gap-1.5 mb-4">
-          <label className="text-sm font-medium text-gray-900 dark:text-gray-100" htmlFor="password">
+          <label
+            className="text-sm font-medium text-gray-900 dark:text-gray-100"
+            htmlFor="password"
+          >
             密码
           </label>
           <input

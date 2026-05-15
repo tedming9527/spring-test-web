@@ -32,9 +32,15 @@ const Layout: React.FC<LayoutProps> = ({ children, title, subtitle }) => {
           Spring Demo
         </NavLink>
         <div className="flex items-center gap-0.5 flex-1">
-          <NavLink to="/welcome" className={navLinkClass}>首页</NavLink>
-          <NavLink to="/sys1" className={navLinkClass}>子系统1</NavLink>
-          <NavLink to="/sys2" className={navLinkClass}>子系统2</NavLink>
+          <NavLink to="/welcome" className={navLinkClass}>
+            首页
+          </NavLink>
+          <NavLink to="/sys1" className={navLinkClass}>
+            子系统1
+          </NavLink>
+          <NavLink to="/sys2" className={navLinkClass}>
+            子系统2
+          </NavLink>
         </div>
         <button
           className="px-3 py-1 text-sm font-medium border border-red-500 text-red-500 rounded hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors cursor-pointer bg-transparent"
@@ -49,9 +55,7 @@ const Layout: React.FC<LayoutProps> = ({ children, title, subtitle }) => {
             {title}
           </h1>
         )}
-        {subtitle && (
-          <p className="text-sm text-gray-400 mb-7">{subtitle}</p>
-        )}
+        {subtitle && <p className="text-sm text-gray-400 mb-7">{subtitle}</p>}
         {children}
       </main>
     </div>

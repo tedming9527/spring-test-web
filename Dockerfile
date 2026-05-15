@@ -12,14 +12,13 @@ RUN npm run build
 FROM eclipse-temurin:17-jdk AS backend-build
 WORKDIR /app
 COPY . .
+# 先将前端产物放入 Spring Boot 静态目录，再打包进 jar
+COPY --from=frontend-build /frontend/dist/ src/main/resources/static/
 RUN ./mvnw clean package -DskipTests
 
 # --------- 生产镜像 ---------
 FROM eclipse-temurin:17-jdk
 WORKDIR /app
-# 拷贝后端jar
 COPY --from=backend-build /app/target/*.jar app.jar
-# 拷贝前端静态资源到 Spring Boot 静态目录
-COPY --from=frontend-build /frontend/dist/ /app/src/main/resources/static/
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]

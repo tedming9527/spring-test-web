@@ -50,7 +50,7 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="login-page">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900 px-6">
       <LoginForm onLogin={handleLogin} loading={loading} error={error} />
     </div>
   );

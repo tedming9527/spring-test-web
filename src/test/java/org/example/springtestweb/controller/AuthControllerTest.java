@@ -1,12 +1,15 @@
 package org.example.springtestweb.controller;
 
+import org.example.springtestweb.model.User;
+import org.example.springtestweb.repository.UserRepository;
 import org.example.springtestweb.util.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
-import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -15,32 +18,53 @@ import static org.mockito.Mockito.*;
 
 class AuthControllerTest {
 
+    private static final BCryptPasswordEncoder ENCODER = new BCryptPasswordEncoder(10);
+
     private JwtUtil jwtUtil;
+    private UserRepository userRepository;
     private AuthController authController;
 
     @BeforeEach
     void setUp() {
         jwtUtil = mock(JwtUtil.class);
+        userRepository = mock(UserRepository.class);
         authController = new AuthController();
-        // inject via reflection since @Autowired isn't active in unit tests
         try {
-            var field = AuthController.class.getDeclaredField("jwtUtil");
-            field.setAccessible(true);
-            field.set(authController, jwtUtil);
+            var jwtField = AuthController.class.getDeclaredField("jwtUtil");
+            jwtField.setAccessible(true);
+            jwtField.set(authController, jwtUtil);
+
+            var repoField = AuthController.class.getDeclaredField("userRepository");
+            repoField.setAccessible(true);
+            repoField.set(authController, userRepository);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
+    private User mockUser(String username, String plainPassword, String roles) {
+        User user = new User();
+        user.setId(1L);
+        user.setName(username);
+        user.setEmail(username + "@test.com");
+        user.setUsername(username);
+        user.setPasswordHash(ENCODER.encode(plainPassword));
+        user.setRoles(roles);
+        return user;
+    }
+
     @Test
     void login_validCredentials_returnsJwtToken() {
+        User admin = mockUser("admin", "123456", "ROLE_ADMIN");
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(admin));
+        when(userRepository.save(any())).thenReturn(admin);
         when(jwtUtil.generateToken(anyLong(), anyList())).thenReturn("mocked.jwt.token");
 
         var req = new AuthController.LoginRequest();
         req.setUsername("admin");
         req.setPassword("123456");
 
-        ResponseEntity<AuthController.LoginResponse> resp = authController.login(req, null);
+        ResponseEntity<AuthController.LoginResponse> resp = authController.login(req);
 
         assertEquals(HttpStatus.OK, resp.getStatusCode());
         assertNotNull(resp.getBody());
@@ -49,26 +73,43 @@ class AuthControllerTest {
     }
 
     @Test
-    void login_invalidCredentials_returns401() {
+    void login_invalidPassword_returns401() {
+        User admin = mockUser("admin", "123456", "ROLE_ADMIN");
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(admin));
+
         var req = new AuthController.LoginRequest();
         req.setUsername("admin");
-        req.setPassword("wrong");
+        req.setPassword("wrongpassword");
 
-        ResponseEntity<AuthController.LoginResponse> resp = authController.login(req, null);
+        ResponseEntity<AuthController.LoginResponse> resp = authController.login(req);
 
         assertEquals(HttpStatus.UNAUTHORIZED, resp.getStatusCode());
         verifyNoInteractions(jwtUtil);
     }
 
     @Test
-    void login_missingFields_returns401() {
-        var req = new AuthController.LoginRequest();
-        // username and password are null
+    void login_userNotFound_returns401() {
+        when(userRepository.findByUsername("nobody")).thenReturn(Optional.empty());
 
-        ResponseEntity<AuthController.LoginResponse> resp = authController.login(req, null);
+        var req = new AuthController.LoginRequest();
+        req.setUsername("nobody");
+        req.setPassword("123456");
+
+        ResponseEntity<AuthController.LoginResponse> resp = authController.login(req);
 
         assertEquals(HttpStatus.UNAUTHORIZED, resp.getStatusCode());
         verifyNoInteractions(jwtUtil);
+    }
+
+    @Test
+    void login_nullFields_returns401() {
+        var req = new AuthController.LoginRequest();
+
+        ResponseEntity<AuthController.LoginResponse> resp = authController.login(req);
+
+        assertEquals(HttpStatus.UNAUTHORIZED, resp.getStatusCode());
+        verifyNoInteractions(jwtUtil);
+        verifyNoInteractions(userRepository);
     }
 }
 

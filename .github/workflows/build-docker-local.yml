@@ -25,6 +25,8 @@ jobs:
         run: |
           docker stop spring-test-web || true
           docker rm spring-test-web || true
+          # Kill any other container occupying port 8080
+          CONTAINER=$(docker ps -q --filter "publish=8080") && [ -n "$CONTAINER" ] && docker stop $CONTAINER && docker rm $CONTAINER || true
 
       - name: Start new container
         run: |

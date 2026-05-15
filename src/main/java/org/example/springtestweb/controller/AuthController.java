@@ -15,7 +15,7 @@ import java.util.Objects;
 
 @Tag(name = "认证中心")
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/auth")
 public class AuthController {
 	@Autowired
 	private JwtUtil jwtUtil;

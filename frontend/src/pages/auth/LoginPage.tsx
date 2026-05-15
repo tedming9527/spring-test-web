@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import LoginForm from "./LoginForm";
 
 const loginApi = async (username: string, password: string) => {
-  const resp = await fetch("/auth/login", {
+  const resp = await fetch("/api/auth/login", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

@@ -21,6 +21,6 @@ public class WebConfigurer implements WebMvcConfigurer {
   public void addInterceptors(InterceptorRegistry registry) {
     registry.addInterceptor(logInterceptor);
     registry.addInterceptor(timeInterceptor);
-    registry.addInterceptor(authTokenInterceptor);
+    registry.addInterceptor(authTokenInterceptor).addPathPatterns("/api/**");
   }
 }

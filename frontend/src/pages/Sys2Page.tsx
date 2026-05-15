@@ -8,7 +8,7 @@ const Sys2Page: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    authFetch("/hello")
+    authFetch("/api/hello")
       .then((res) => {
         if (res.status === 401) throw new Error("JWT 校验失败 (401 Unauthorized)");
         return res.text();

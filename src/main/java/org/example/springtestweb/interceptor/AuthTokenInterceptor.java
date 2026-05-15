@@ -15,10 +15,9 @@ public class AuthTokenInterceptor implements HandlerInterceptor {
 
 	@Override
 	public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-		// 只拦截受保护接口（如 /users, /welcome 等），放行 /auth/login
 		String uri = request.getRequestURI();
-		if (uri.startsWith("/auth/login") || uri.startsWith("/static") || uri.startsWith("/swagger")
-				|| uri.startsWith("/v3/api-docs")) {
+		// 只保护 /api/** 路径；/api/auth/login 本身无需 token
+		if (!uri.startsWith("/api/") || uri.startsWith("/api/auth/login")) {
 			return true;
 		}
 		String token = request.getHeader("Authorization");

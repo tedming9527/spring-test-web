@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "用户管理")
 @RestController
-@RequestMapping("/users")
+@RequestMapping("/api/users")
 public class UserController {
   @Autowired
   private UserRepository userRepository;

@@ -34,7 +34,7 @@ jobs:
             --name spring-test-web \
             --restart always \
             -e DB_HOST=host.docker.internal \
-            -e JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+            -e JWT_SECRET="${{ secrets.JWT_SECRET || 'default-secret-change-me-in-prod-32x' }}" \
             -e JWT_EXPIRATION_MS=3600000 \
             -p 8080:8080 \
             spring-test-web

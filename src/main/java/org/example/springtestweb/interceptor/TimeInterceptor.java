@@ -38,6 +38,11 @@ public class TimeInterceptor implements HandlerInterceptor {
   public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, @Nullable Exception ex) throws Exception {
     LocalTime start = threadLocalStart.get();
     LocalTime end = threadLocalEnd.get();
-    log.info("afterCompletion: duration {}", Duration.between(start, end));
+    if (start != null) {
+      LocalTime endTime = end != null ? end : LocalTime.now();
+      log.info("afterCompletion: duration {}", Duration.between(start, endTime));
+    }
+    threadLocalStart.remove();
+    threadLocalEnd.remove();
   }
 }

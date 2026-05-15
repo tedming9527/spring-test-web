@@ -1,4 +1,4 @@
-package org.example.springtestweb.controller;
+package org.example.springtestweb.filter;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -21,7 +21,7 @@ import java.io.IOException;
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
-public class SpaController extends OncePerRequestFilter {
+public class SpaRoutingFilter extends OncePerRequestFilter {
 
 	@Override
 	protected void doFilterInternal(HttpServletRequest request,

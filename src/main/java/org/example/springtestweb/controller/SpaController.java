@@ -1,46 +1,40 @@
 package org.example.springtestweb.controller;
 
-import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.boot.web.servlet.error.ErrorController;
-import org.springframework.http.MediaType;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
 /**
- * SPA fallback：实现 ErrorController 接管 /error 端点。
+ * SPA 路由过滤器：在 Spring MVC 之前拦截请求，按规则分流：
+ *  - /api/**              → 交给 Spring MVC（API 控制器）
+ *  - 含扩展名的路径        → 交给 Spring ResourceHandler（静态资源，找不到则返回 404）
+ *  - 其他路径（SPA 路由） → forward 到 /index.html，由 React Router 处理
  *
- * 路由逻辑：
- *  - 404 + 路径不含 '.'  → forward 到 /index.html（React Router 处理）
- *  - 404 + 路径含 '.'    → 静态资源缺失，返回 404（避免把 html 当 JS 加载）
- *  - 其他状态码           → 返回简单错误信息
+ * 使用 Filter 而非 ErrorController/MVC catch-all，可彻底避免
+ * 静态资源被 forward 成 text/html 导致的 MIME 类型错误。
  */
-@Controller
-@RequestMapping("${server.error.path:${error.path:/error}}")
-public class SpaController implements ErrorController {
+@Component
+public class SpaController extends OncePerRequestFilter {
 
-    @RequestMapping(produces = MediaType.TEXT_HTML_VALUE)
-    public void handleError(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        Integer statusCode = (Integer) request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE);
-        String requestUri = (String) request.getAttribute(RequestDispatcher.ERROR_REQUEST_URI);
-        if (requestUri == null) requestUri = "/";
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
+        String path = request.getRequestURI();
 
-        if (statusCode != null && statusCode == 404 && !hasFileExtension(requestUri)) {
-            // SPA 路由 → 交给 React Router
-            request.getRequestDispatcher("/index.html").forward(request, response);
-        } else if (statusCode != null && statusCode == 404) {
-            // 静态资源找不到 → 真正的 404，直接写响应，不再触发 /error（避免 MIME 错误）
-            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
-            response.setContentType(MediaType.TEXT_PLAIN_VALUE);
-            response.getWriter().write("404 Not Found: " + requestUri);
-        } else {
-            response.setStatus(statusCode != null ? statusCode : 500);
-            response.setContentType(MediaType.TEXT_PLAIN_VALUE);
-            response.getWriter().write("Error " + statusCode);
+        // API 请求或含文件扩展名的路径（.js/.css/.png 等）→ 正常处理
+        if (path.startsWith("/api/") || hasFileExtension(path)) {
+            filterChain.doFilter(request, response);
+            return;
         }
+
+        // SPA 路由 → forward 到 index.html，由 React Router 处理
+        request.getRequestDispatcher("/index.html").forward(request, response);
     }
 
     private boolean hasFileExtension(String path) {
@@ -49,3 +43,4 @@ public class SpaController implements ErrorController {
         return filename.contains(".");
     }
 }
+

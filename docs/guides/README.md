@@ -19,6 +19,7 @@ guides/
 | 2026-05-15 | SPA 路由 + 静态资源 MIME 处理 | [2026-05-15-spa-routing-and-static-assets](./2026-05-15-spa-routing-and-static-assets/) |
 | 2026-05-15 | JWT 认证实现 | [2026-05-15-jwt-authentication](./2026-05-15-jwt-authentication/) |
 | 2026-05-15 | Docker CI/CD 与多阶段构建 | [2026-05-15-docker-cicd](./2026-05-15-docker-cicd/) |
+| 2026-05-15 | Tailwind CSS v4 迁移（前端样式架构） | [2026-05-15-tailwind-css-v4](./2026-05-15-tailwind-css-v4/) |
 
 ---
 

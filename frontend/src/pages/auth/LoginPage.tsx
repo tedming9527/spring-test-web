@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import LoginForm from "./LoginForm";
 
 const loginApi = async (username: string, password: string) => {
@@ -28,6 +28,7 @@ const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | undefined>();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleLogin = async (username: string, password: string) => {
     setLoading(true);
@@ -36,8 +37,11 @@ const LoginPage: React.FC = () => {
       const result = await loginApi(username, password);
       // 持久化 token
       localStorage.setItem("token", result.token);
-      // 跳转到欢迎页
-      navigate("/welcome");
+      // 跳回来源或降级到欢迎页
+      const from = (location.state as any)?.from?.pathname || "/welcome";
+      const safeFrom =
+        typeof from === "string" && from.startsWith("/") ? from : "/welcome";
+      navigate(safeFrom, { replace: true });
     } catch (err: any) {
       setError(err.message);
     } finally {

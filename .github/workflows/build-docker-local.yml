@@ -15,6 +15,9 @@ jobs:
       - name: Build with Maven
         run: mvn clean package -DskipTests
 
+      - name: Run backend tests
+        run: mvn test -pl . -Dtest="**/util/JwtUtilTest,**/controller/AuthControllerTest"
+
       - name: Build Docker image
         run: docker build -t spring-test-web .
 
@@ -29,5 +32,7 @@ jobs:
             --name spring-test-web \
             --restart always \
             -e DB_HOST=host.docker.internal \
+            -e JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+            -e JWT_EXPIRATION_MS=3600000 \
             -p 8080:8080 \
             spring-test-web

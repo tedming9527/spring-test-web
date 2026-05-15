@@ -6,10 +6,11 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 @Entity
-@Table(indexes={@Index(name="uk_email", columnList="email", unique=true)})
+@Table(indexes = { @Index(name = "uk_email", columnList = "email", unique = true) })
 public class User {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -23,4 +24,12 @@ public class User {
   @Column(nullable = false, length = 50)
   private String email;
   private LocalDate birthDay;
+
+  @Column(name = "password_hash", length = 255)
+  private String passwordHash;
+
+  @Column(name = "roles", length = 255)
+  private String roles;
+
+  private LocalDateTime lastLogin;
 }

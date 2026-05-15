@@ -4,6 +4,7 @@ import {
   Routes,
   Route,
   Navigate,
+  useLocation,
 } from "react-router-dom";
 
 import LoginPage from "./pages/auth/LoginPage";
@@ -19,8 +20,9 @@ import "./App.css";
 // 路由守卫组件
 const RequireAuth: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const token = localStorage.getItem("token");
+  const location = useLocation();
   if (!token) {
-    return <Navigate to="/auth/login" replace />;
+    return <Navigate to="/auth/login" state={{ from: location }} replace />;
   }
   return <>{children}</>;
 };

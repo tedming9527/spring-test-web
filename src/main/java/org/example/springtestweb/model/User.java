@@ -1,6 +1,9 @@
 package org.example.springtestweb.model;
 
-import jakarta.persistence.*;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
@@ -9,29 +12,22 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
-@Entity
-@Table(indexes = { @Index(name = "uk_email", columnList = "email", unique = true) })
+@TableName("user")
 public class User {
-  @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  @TableId(type = IdType.AUTO)
   private Long id;
   @NotBlank(message = "名称不能为空")
-  @Column(nullable = false, columnDefinition = "varchar(20) comment '姓名'")
   private String name;
   @Min(value = -1, message = "年龄不能小于-1")
-  @Transient
+  @TableField(exist = false)
   private int age;
-  @Column(nullable = false, length = 50)
   private String email;
   private LocalDate birthDay;
 
-  @Column(name = "username", unique = true, length = 50)
   private String username;
 
-  @Column(name = "password_hash", length = 255)
   private String passwordHash;
 
-  @Column(name = "roles", length = 255)
   private String roles;
 
   private LocalDateTime lastLogin;

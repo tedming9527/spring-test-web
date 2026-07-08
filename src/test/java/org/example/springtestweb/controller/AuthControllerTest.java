@@ -1,7 +1,8 @@
 package org.example.springtestweb.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import org.example.springtestweb.mapper.UserMapper;
 import org.example.springtestweb.model.User;
-import org.example.springtestweb.repository.UserRepository;
 import org.example.springtestweb.util.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,6 +13,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.*;
@@ -21,22 +23,22 @@ class AuthControllerTest {
     private static final BCryptPasswordEncoder ENCODER = new BCryptPasswordEncoder(10);
 
     private JwtUtil jwtUtil;
-    private UserRepository userRepository;
+    private UserMapper userMapper;
     private AuthController authController;
 
     @BeforeEach
     void setUp() {
         jwtUtil = mock(JwtUtil.class);
-        userRepository = mock(UserRepository.class);
+        userMapper = mock(UserMapper.class);
         authController = new AuthController();
         try {
             var jwtField = AuthController.class.getDeclaredField("jwtUtil");
             jwtField.setAccessible(true);
             jwtField.set(authController, jwtUtil);
 
-            var repoField = AuthController.class.getDeclaredField("userRepository");
-            repoField.setAccessible(true);
-            repoField.set(authController, userRepository);
+            var mapperField = AuthController.class.getDeclaredField("userMapper");
+            mapperField.setAccessible(true);
+            mapperField.set(authController, userMapper);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -56,8 +58,8 @@ class AuthControllerTest {
     @Test
     void login_validCredentials_returnsJwtToken() {
         User admin = mockUser("admin", "123456", "ROLE_ADMIN");
-        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(admin));
-        when(userRepository.save(any())).thenReturn(admin);
+        when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(admin);
+        when(userMapper.updateById(any(User.class))).thenReturn(1);
         when(jwtUtil.generateToken(anyLong(), anyList())).thenReturn("mocked.jwt.token");
 
         var req = new AuthController.LoginRequest();
@@ -75,7 +77,7 @@ class AuthControllerTest {
     @Test
     void login_invalidPassword_returns401() {
         User admin = mockUser("admin", "123456", "ROLE_ADMIN");
-        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(admin));
+        when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(admin);
 
         var req = new AuthController.LoginRequest();
         req.setUsername("admin");
@@ -89,7 +91,7 @@ class AuthControllerTest {
 
     @Test
     void login_userNotFound_returns401() {
-        when(userRepository.findByUsername("nobody")).thenReturn(Optional.empty());
+        when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null);
 
         var req = new AuthController.LoginRequest();
         req.setUsername("nobody");
@@ -109,7 +111,6 @@ class AuthControllerTest {
 
         assertEquals(HttpStatus.UNAUTHORIZED, resp.getStatusCode());
         verifyNoInteractions(jwtUtil);
-        verifyNoInteractions(userRepository);
+        verifyNoInteractions(userMapper);
     }
 }
-

@@ -13,6 +13,11 @@ spring:
     username: root
     password:
     driver-class-name: com.mysql.cj.jdbc.Driver
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 20260515
+    baseline-description: "Baseline after V20260515 has been applied"
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true

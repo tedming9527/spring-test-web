@@ -5,7 +5,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-@MapperScan("org.example.springtestweb.mapper")
+@MapperScan("org.example.springtestweb")
 public class SpringTestWebApplication {
 
   public static void main(String[] args) {

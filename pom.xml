@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.1.0-M2</version>
+        <version>4.1.0</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>org.example</groupId>
@@ -77,6 +77,12 @@
             <scope>provided</scope>
         </dependency>
         
+        <!-- Flyway 数据库迁移（Spring Boot 4.x 必须用 starter 才有自动配置） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-flyway</artifactId>
+        </dependency>
+
         <!-- BCrypt 密码哈希（spring-security-crypto，不引入完整 Spring Security） -->
         <dependency>
             <groupId>org.springframework.security</groupId>

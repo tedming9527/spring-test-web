@@ -37,8 +37,8 @@ public class JwtUtil {
 	 *                         ms = 1h)
 	 *                         — choose an appropriate TTL for your security model.
 	 */
-	public JwtUtil(@Value("${jwt.secret:defaultsecretchangeme}") String secret,
-			@Value("${jwt.expiration-ms:3600000}") long expirationMillis) {
+	public JwtUtil(@Value("${jwt.secret}") String secret,
+			@Value("${jwt.expiration-ms}") long expirationMillis) {
 		// Note: io.jsonwebtoken.security.Keys.hmacShaKeyFor validates the key length.
 		// If `secret.getBytes()` is too short for the requested algorithm a runtime
 		// IllegalArgumentException will be thrown. Prefer long random secrets (256+

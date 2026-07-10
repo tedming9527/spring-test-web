@@ -1,7 +1,8 @@
 package org.example.springtestweb.controller;
 
-import com.github.pagehelper.PageHelper;
-import com.github.pagehelper.PageInfo;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.example.springtestweb.mapper.UserMapper;
@@ -49,17 +50,23 @@ public class UserController {
 
   @Operation(summary = "获取用户列表")
   @GetMapping
-  public PageInfo<User> list(
+  public IPage<User> list(
       @RequestParam(defaultValue = "id") String property,
       @RequestParam(defaultValue = "ASC") String direction,
       @RequestParam(defaultValue = "0") Integer page,
       @RequestParam(defaultValue = "10") Integer size
   ) {
-    // validate sort field to prevent SQL injection
-    String sortField = ALLOWED_SORT_FIELDS.contains(property) ? property : "id";
-    String sortDir = "DESC".equalsIgnoreCase(direction) ? "desc" : "asc";
-    PageHelper.startPage(page + 1, size);
-    PageHelper.orderBy(sortField + " " + sortDir);
-    return new PageInfo<>(userMapper.selectList(null));
+    Page<User> pageParam = new Page<>(page + 1, size);
+    LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+    boolean isAsc = !"DESC".equalsIgnoreCase(direction);
+    switch (property) {
+      case "name" -> wrapper.orderBy(true, isAsc, User::getName);
+      case "email" -> wrapper.orderBy(true, isAsc, User::getEmail);
+      case "birthDay" -> wrapper.orderBy(true, isAsc, User::getBirthDay);
+      case "username" -> wrapper.orderBy(true, isAsc, User::getUsername);
+      case "lastLogin" -> wrapper.orderBy(true, isAsc, User::getLastLogin);
+      default -> wrapper.orderBy(true, isAsc, User::getId);
+    }
+    return userMapper.selectPage(pageParam, wrapper);
   }
 }

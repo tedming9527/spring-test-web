@@ -82,6 +82,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-flyway</artifactId>
         </dependency>
+        <!-- Flyway 12.x MySQL 方言支持（flyway-core 已移除 MySQL 支持） -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-mysql</artifactId>
+        </dependency>
 
         <!-- BCrypt 密码哈希（spring-security-crypto，不引入完整 Spring Security） -->
         <dependency>

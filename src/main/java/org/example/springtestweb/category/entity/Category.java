@@ -9,6 +9,7 @@ import jakarta.validation.constraints.DecimalMin;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.Objects;
 
 /**
  * 商品分类表 (goods_category)
@@ -50,7 +51,7 @@ public class Category {
   private Integer itemNumber;
 
   /** 保证金 */
-  private Integer margin;
+  private BigDecimal margin;
 
   /** 居间服务费率 (0~1) */
   @DecimalMin("0.0")
@@ -114,4 +115,22 @@ public class Category {
   /** 展示权重（不入表） */
   @TableField(exist = false)
   private Integer showWeight;
+
+  @Override
+  public int hashCode() {
+    int result = 17;
+    result = 31 * result + (id == null ? 0 : id.hashCode());
+    return result;
+  }
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    Category category = (Category) o;
+    return Objects.equals(id, category.id);
+  }
 }

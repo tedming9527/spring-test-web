@@ -29,8 +29,8 @@ public class SpaRoutingFilter extends OncePerRequestFilter {
 			FilterChain filterChain) throws ServletException, IOException {
 		String path = request.getRequestURI();
 
-		// API 请求或含文件扩展名的路径（.js/.css/.png 等）→ 正常处理
-		if (path.startsWith("/api/") || hasFileExtension(path)) {
+		// API、springdoc 文档，或含文件扩展名的路径（.js/.css/.png 等）→ 正常处理
+		if (path.startsWith("/api/") || path.startsWith("/v3/") || path.startsWith("/swagger-") || hasFileExtension(path)) {
 			filterChain.doFilter(request, response);
 			return;
 		}

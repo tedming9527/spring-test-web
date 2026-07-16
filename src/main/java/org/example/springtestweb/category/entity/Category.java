@@ -11,12 +11,14 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.util.Objects;
 
+import org.example.springtestweb.entity.BaseEntity;
+
 /**
  * 商品分类表 (goods_category)
  */
 @TableName("goods_category")
 @Data
-public class Category {
+public class Category extends BaseEntity {
 
   /** 分类ID */
   @TableId(type = IdType.AUTO)

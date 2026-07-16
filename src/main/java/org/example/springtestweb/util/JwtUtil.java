@@ -69,8 +69,8 @@ public class JwtUtil {
 				.setSubject(String.valueOf(userId))
 				.setIssuedAt(new Date(now))
 				.setExpiration(new Date(now + expirationMillis))
-				.claim("roles", roles)
-				.signWith(key, SignatureAlgorithm.HS256);
+				.claim("roles", roles);
+		builder.signWith(key, SignatureAlgorithm.HS256);
 		return builder.compact();
 	}
 

@@ -6,7 +6,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-@MapperScan(value = "org.example.springtestweb", markerInterface = BaseMapper.class)
+@MapperScan(value = "org.example.springtestweb.**.mapper", markerInterface = BaseMapper.class)
 public class SpringTestWebApplication {
 
   public static void main(String[] args) {

@@ -8,4 +8,12 @@
         FROM goods_category
         WHERE parent_id = #{parentId}
     </select>
+    <select id="findNamesByIds" resultType="CategoryVo">
+        SELECT name
+        FROM goods_category
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
 </mapper>

@@ -3,10 +3,7 @@ package org.example.springtestweb.category.controller;
 import org.example.springtestweb.category.service.CategoryService;
 import org.example.springtestweb.category.vo.CategoryVo;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -18,5 +15,9 @@ public class CategoryController {
   @GetMapping("/{parentId}/children")
   public List<CategoryVo> getListByParentId(@PathVariable Long parentId) {
     return categoryService.findByParentId(parentId);
+  }
+  @GetMapping("/names")
+  public List<String> findNamesByIds(@RequestParam List<Long> ids) {
+    return categoryService.findNamesByIds(ids);
   }
 }

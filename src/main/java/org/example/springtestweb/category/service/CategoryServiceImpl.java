@@ -15,4 +15,8 @@ public class CategoryServiceImpl implements CategoryService {
   public List<CategoryVo> findByParentId(Long parentId) {
     return categoryMapper.findByParentId(parentId);
   }
+  @Override
+  public List<String> findNamesByIds(List<Long> ids) {
+    return categoryMapper.findNamesByIds(ids);
+  }
 }

@@ -19,6 +19,7 @@ spring:
     baseline-version: 20260515
     baseline-description: "Baseline after V20260515 has been applied"
 mybatis-plus:
+  mapper-locations: classpath*:org/example/**/mapper/*Mapper.xml
   configuration:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl

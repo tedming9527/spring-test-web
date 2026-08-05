@@ -7,5 +7,4 @@ import java.util.List;
 
 public interface CategoryService {
   List<CategoryVo> findByParentId(Long parentId);
-  List<String> findNamesByIds(List<Long> ids);
 }

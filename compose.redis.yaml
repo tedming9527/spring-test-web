@@ -1,0 +1,29 @@
+services:
+  redis:
+    build:
+      context: ./docker/redis
+    image: ${REDIS_IMAGE:-spring-test-web-redis:local}
+    container_name: ${REDIS_CONTAINER_NAME:-spring-test-web-redis}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    environment:
+      REDISCLI_AUTH: ${REDIS_PASSWORD:-123456}
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - ${REDIS_PASSWORD:-123456}
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+volumes:
+  redis-data:
+    name: ${REDIS_DATA_VOLUME:-spring-test-web-redis-data}

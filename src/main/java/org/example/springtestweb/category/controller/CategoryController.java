@@ -17,8 +17,4 @@ public class CategoryController {
   public List<CategoryVo> getListByParentId(@PathVariable Long parentId) {
     return categoryService.findByParentId(parentId);
   }
-  @GetMapping("/names")
-  public List<String> findNamesByIds(@RequestParam List<Long> ids) {
-    return categoryService.findNamesByIds(ids);
-  }
 }

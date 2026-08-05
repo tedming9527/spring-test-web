@@ -8,28 +8,4 @@
         FROM goods_category
         WHERE parent_id = #{parentId}
     </select>
-    <select id="findNamesByIds" resultType="CategoryVo">
-        SELECT name
-        FROM goods_category
-        WHERE id IN
-        <foreach collection="ids" item="id" open="(" separator="," close=")">
-            #{id}
-        </foreach>
-    </select>
-    <select id="findByCodeAndName" parameterType="java.util.Map" resultType="CategoryVo">
-        SELECT id, name, icon_url
-        FROM goods_category
-        WHERE hidden = 0
-        <if test="code != null and code != ''">
-            AND parent_id = #{code}
-        </if>
-        <if test="code == null or code == ''">
-            AND parent_id IS NULL
-        </if>
-        <if test="name != null and name != ''">
-            AND name LIKE CONCAT('%', #{name}, '%')
-        </if>
-        limit #{previous}, #{limit}
-    </select>
-
 </mapper>

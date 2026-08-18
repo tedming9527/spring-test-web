@@ -5,6 +5,7 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import javax.crypto.SecretKey;
 import java.security.Key;
 import java.util.Date;
 import java.util.List;
@@ -86,7 +87,7 @@ public class JwtUtil {
 	 * @throws JwtException on parse/validation failure
 	 */
 	public Jws<Claims> parseToken(String token) throws JwtException {
-		return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+		return Jwts.parser().verifyWith((SecretKey) key).build().parseSignedClaims(token);
 	}
 
 	/**

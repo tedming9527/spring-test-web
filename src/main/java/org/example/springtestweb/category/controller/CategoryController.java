@@ -4,6 +4,7 @@ import org.example.springtestweb.category.bo.CategoryNameBo;
 import org.example.springtestweb.category.service.CategoryService;
 import org.example.springtestweb.category.vo.CategoryVo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -17,4 +18,5 @@ public class CategoryController {
   public List<CategoryVo> getListByParentId(@PathVariable Long parentId) {
     return categoryService.findByParentId(parentId);
   }
+
 }

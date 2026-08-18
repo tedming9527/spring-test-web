@@ -1,6 +1,7 @@
 package org.example.springtestweb.category.service;
 
 import org.example.springtestweb.category.bo.CategoryNameBo;
+import org.example.springtestweb.category.entity.Category;
 import org.example.springtestweb.category.mapper.CategoryMapper;
 import org.example.springtestweb.category.vo.CategoryVo;
 import org.example.springtestweb.redis.service.RedisService;
@@ -29,8 +30,24 @@ public class CategoryServiceImpl implements CategoryService {
     }
     List<CategoryVo> categories = categoryMapper.findByParentId(parentId);
 
-    Duration ttl = categories.isEmpty() ? Duration.ofMinutes(1) : Duration.ofMinutes(6);
+    Duration ttl = categories.isEmpty() ? Duration.ofMinutes(2) : Duration.ofMinutes(10);
     redisService.setObject(key, categories, ttl);
     return categories;
+  }
+
+  @Override
+  public boolean updateName(Long id, String name) {
+    Category category =  categoryMapper.selectById(id);
+    if (category == null) {
+      return false;
+    }
+    category.setName(name);
+    int affectRows = categoryMapper.updateById(category);
+    if (affectRows != 1) {
+      return false;
+    }
+    String key = "category:children:" + category.getParentId();
+    redisService.delete(key);
+    return true;
   }
 }

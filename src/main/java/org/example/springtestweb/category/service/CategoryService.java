@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface CategoryService {
   List<CategoryVo> findByParentId(Long parentId);
+  boolean updateName(Long id, String name);
 }

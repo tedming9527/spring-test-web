@@ -15,7 +15,7 @@ public class CategoryController {
   @Autowired
   private CategoryService categoryService;
   @GetMapping("/{parentId}/children")
-  public List<CategoryVo> getListByParentId(@PathVariable Long parentId) {
+  public List<CategoryVo> getListByParentId(@PathVariable Long parentId) throws InterruptedException {
     return categoryService.findByParentId(parentId);
   }
 

@@ -6,6 +6,6 @@ import org.example.springtestweb.category.vo.CategoryVo;
 import java.util.List;
 
 public interface CategoryService {
-  List<CategoryVo> findByParentId(Long parentId);
+  List<CategoryVo> findByParentId(Long parentId) throws InterruptedException;
   boolean updateName(Long id, String name);
 }

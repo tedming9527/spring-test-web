@@ -5,6 +5,7 @@ import lombok.Data;
 import org.example.springtestweb.redis.dto.UserCache;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
+import org.springframework.data.redis.core.types.Expiration;
 import org.springframework.stereotype.Service;
 import org.springframework.ui.freemarker.SpringTemplateLoader;
 import tools.jackson.core.JacksonException;
@@ -15,6 +16,9 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
+
+import static java.util.UUID.*;
 
 @Service
 @Data
@@ -148,5 +152,21 @@ public class RedisService {
     } catch (JacksonException e) {
       throw new IllegalStateException("Redis 列表反序列化失败，key=" + key, e);
     }
+  }
+  public boolean lock(String key, String uuid) {
+    return stringRedisTemplate.opsForValue().setIfAbsent("lock:category:children:" + key, uuid, Duration.ofSeconds(5));
+  }
+  public void unlock(String key, String uuid) {
+    String cached = stringRedisTemplate.opsForValue().get("lock:category:children:" + key);
+    if (cached == null) {
+      return;
+    }
+    if (uuid.equals(cached)) {
+      stringRedisTemplate.opsForValue().getAndDelete("lock:category:children:" + key);
+    }
+  }
+
+  public void unlock(Long parentId) {
+
   }
 }

@@ -1,6 +1,5 @@
 package org.example.springtestweb.category.service;
 
-import org.example.springtestweb.category.bo.CategoryNameBo;
 import org.example.springtestweb.category.entity.Category;
 import org.example.springtestweb.category.mapper.CategoryMapper;
 import org.example.springtestweb.category.vo.CategoryVo;
@@ -9,10 +8,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+
+import static java.lang.Thread.sleep;
 
 @Service
 public class CategoryServiceImpl implements CategoryService {
@@ -21,18 +19,43 @@ public class CategoryServiceImpl implements CategoryService {
   @Autowired
   private RedisService redisService;
 
+  private List<CategoryVo> getCachedCategory(String key) {
+    return redisService.getList(key, CategoryVo.class);
+  }
+
   @Override
   public List<CategoryVo> findByParentId(Long parentId) {
     String key = "category:children:" + parentId;
-    List<CategoryVo> cachedCategories = redisService.getList(key, CategoryVo.class);
-    if (cachedCategories != null) {
-      return cachedCategories;
+    for (int attempt = 0; attempt < 3; attempt++) {
+      // 获取缓存
+      List<CategoryVo> cached = getCachedCategory(key);
+      if (cached != null) {
+        return cached;
+      }
+      String uuid = UUID.randomUUID().toString();
+      if (redisService.lock(key, uuid)) {
+        try {
+        List<CategoryVo> cachedAfterLocked = getCachedCategory(key);
+        if (cachedAfterLocked != null) {
+          return cachedAfterLocked;
+        }
+        List<CategoryVo> categories = categoryMapper.findByParentId(parentId);
+        Duration ttl = categories.isEmpty() ? Duration.ofMinutes(2): Duration.ofMinutes(10);
+        redisService.setObject(key, categories, ttl);
+        return categories;
+        } finally {
+          redisService.unlock(key, uuid);
+        }
+      } else {
+        try {
+          sleep(300);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new IllegalStateException("等待分类缓存重建时被中断", e);
+        }
+      }
     }
-    List<CategoryVo> categories = categoryMapper.findByParentId(parentId);
-
-    Duration ttl = categories.isEmpty() ? Duration.ofMinutes(2) : Duration.ofMinutes(10);
-    redisService.setObject(key, categories, ttl);
-    return categories;
+    throw new IllegalStateException("等待分类缓存重建超时");
   }
 
   @Override

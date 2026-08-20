@@ -25,26 +25,27 @@ public class CategoryServiceImpl implements CategoryService {
 
   @Override
   public List<CategoryVo> findByParentId(Long parentId) {
-    String key = "category:children:" + parentId;
+    String cacheKey = "category:children:" + parentId;
+    String lockKey = "lock:" + cacheKey;
     for (int attempt = 0; attempt < 3; attempt++) {
       // 获取缓存
-      List<CategoryVo> cached = getCachedCategory(key);
+      List<CategoryVo> cached = getCachedCategory(cacheKey);
       if (cached != null) {
         return cached;
       }
       String uuid = UUID.randomUUID().toString();
-      if (redisService.lock(key, uuid)) {
+      if (redisService.lock(lockKey, uuid)) {
         try {
-        List<CategoryVo> cachedAfterLocked = getCachedCategory(key);
+        List<CategoryVo> cachedAfterLocked = getCachedCategory(cacheKey);
         if (cachedAfterLocked != null) {
           return cachedAfterLocked;
         }
         List<CategoryVo> categories = categoryMapper.findByParentId(parentId);
         Duration ttl = categories.isEmpty() ? Duration.ofMinutes(2): Duration.ofMinutes(10);
-        redisService.setObject(key, categories, ttl);
+        redisService.setObject(cacheKey, categories, ttl);
         return categories;
         } finally {
-          redisService.unlock(key, uuid);
+          redisService.unlock(lockKey, uuid);
         }
       } else {
         try {

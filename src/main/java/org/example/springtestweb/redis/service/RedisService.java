@@ -153,16 +153,16 @@ public class RedisService {
       throw new IllegalStateException("Redis 列表反序列化失败，key=" + key, e);
     }
   }
-  public boolean lock(String key, String uuid) {
-    return stringRedisTemplate.opsForValue().setIfAbsent("lock:category:children:" + key, uuid, Duration.ofSeconds(5));
+  public boolean lock(String lockKey, String uuid) {
+    return stringRedisTemplate.opsForValue().setIfAbsent(lockKey, uuid, Duration.ofSeconds(5));
   }
-  public void unlock(String key, String uuid) {
-    String cached = stringRedisTemplate.opsForValue().get("lock:category:children:" + key);
+  public void unlock(String lockKey, String uuid) {
+    String cached = stringRedisTemplate.opsForValue().get(lockKey);
     if (cached == null) {
       return;
     }
     if (uuid.equals(cached)) {
-      stringRedisTemplate.opsForValue().getAndDelete("lock:category:children:" + key);
+      stringRedisTemplate.opsForValue().getAndDelete(lockKey);
     }
   }
 

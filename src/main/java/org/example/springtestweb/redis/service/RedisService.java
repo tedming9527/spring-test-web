@@ -162,7 +162,7 @@ public class RedisService {
     }
   }
   public boolean lock(String lockKey, String uuid) {
-    return stringRedisTemplate.opsForValue().setIfAbsent(lockKey, uuid, Duration.ofMillis(500));
+    return stringRedisTemplate.opsForValue().setIfAbsent(lockKey, uuid, Duration.ofSeconds(5));
   }
   public void unlock(String lockKey, String uuid) {
     stringRedisTemplate.execute(UNLOCK_SCRIPT, Collections.singletonList(lockKey), uuid);

@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import static java.lang.Thread.sleep;
 
@@ -27,7 +28,9 @@ public class CategoryServiceImpl implements CategoryService {
   public List<CategoryVo> findByParentId(Long parentId) {
     String cacheKey = "category:children:" + parentId;
     String lockKey = "lock:" + cacheKey;
-    for (int attempt = 0; attempt < 3; attempt++) {
+    long waitDeadline = System.nanoTime() + Duration.ofMillis(900).toNanos();
+    long maxSleepNanos = Duration.ofMillis(300).toNanos();
+    while (System.nanoTime() < waitDeadline) {
       // 获取缓存
       List<CategoryVo> cached = getCachedCategory(cacheKey);
       if (cached != null) {
@@ -48,9 +51,15 @@ public class CategoryServiceImpl implements CategoryService {
           redisService.unlock(lockKey, uuid);
         }
       } else {
+        long remainingNanos = waitDeadline - System.nanoTime();
+        if (remainingNanos <= 0) {
+          break;
+        }
+        long sleepNanos = Math.min(maxSleepNanos, remainingNanos);
+
+
         try {
-          System.out.println("获取锁失败，沉睡");
-          sleep(300);
+          TimeUnit.NANOSECONDS.sleep(sleepNanos);
           List<CategoryVo> cachedAfterWait = getCachedCategory(cacheKey);
           if (cachedAfterWait != null) {
             return cachedAfterWait;

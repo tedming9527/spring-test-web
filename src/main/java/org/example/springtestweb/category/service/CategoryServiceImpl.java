@@ -49,7 +49,12 @@ public class CategoryServiceImpl implements CategoryService {
         }
       } else {
         try {
+          System.out.println("获取锁失败，沉睡");
           sleep(300);
+          List<CategoryVo> cachedAfterWait = getCachedCategory(cacheKey);
+          if (cachedAfterWait != null) {
+            return cachedAfterWait;
+          }
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           throw new IllegalStateException("等待分类缓存重建时被中断", e);

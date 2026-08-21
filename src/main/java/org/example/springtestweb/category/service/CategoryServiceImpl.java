@@ -36,14 +36,14 @@ public class CategoryServiceImpl implements CategoryService {
       String uuid = UUID.randomUUID().toString();
       if (redisService.lock(lockKey, uuid)) {
         try {
-        List<CategoryVo> cachedAfterLocked = getCachedCategory(cacheKey);
-        if (cachedAfterLocked != null) {
-          return cachedAfterLocked;
-        }
-        List<CategoryVo> categories = categoryMapper.findByParentId(parentId);
-        Duration ttl = categories.isEmpty() ? Duration.ofMinutes(2): Duration.ofMinutes(10);
-        redisService.setObject(cacheKey, categories, ttl);
-        return categories;
+          List<CategoryVo> cachedAfterLocked = getCachedCategory(cacheKey);
+          if (cachedAfterLocked != null) {
+            return cachedAfterLocked;
+          }
+          List<CategoryVo> categories = categoryMapper.findByParentId(parentId);
+          Duration ttl = categories.isEmpty() ? Duration.ofMinutes(2): Duration.ofMinutes(10);
+          redisService.setObject(cacheKey, categories, ttl);
+          return categories;
         } finally {
           redisService.unlock(lockKey, uuid);
         }

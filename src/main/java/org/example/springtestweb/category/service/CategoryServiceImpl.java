@@ -6,6 +6,7 @@ import org.example.springtestweb.category.vo.CategoryVo;
 import org.example.springtestweb.redis.service.RedisService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.util.*;
@@ -74,6 +75,7 @@ public class CategoryServiceImpl implements CategoryService {
   }
 
   @Override
+  @Transactional
   public boolean updateName(Long id, String name) {
     Category category =  categoryMapper.selectById(id);
     if (category == null) {

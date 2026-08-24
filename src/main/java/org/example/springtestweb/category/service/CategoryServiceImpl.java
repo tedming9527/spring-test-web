@@ -60,15 +60,15 @@ public class CategoryServiceImpl implements CategoryService {
 
         try {
           TimeUnit.NANOSECONDS.sleep(sleepNanos);
-          List<CategoryVo> cachedAfterWait = getCachedCategory(cacheKey);
-          if (cachedAfterWait != null) {
-            return cachedAfterWait;
-          }
         } catch (InterruptedException e) {
           Thread.currentThread().interrupt();
           throw new IllegalStateException("等待分类缓存重建时被中断", e);
         }
       }
+    }
+    List<CategoryVo> cachedAfterTimeout = getCachedCategory(cacheKey);
+    if (cachedAfterTimeout != null) {
+      return cachedAfterTimeout;
     }
     throw new IllegalStateException("等待分类缓存重建超时");
   }

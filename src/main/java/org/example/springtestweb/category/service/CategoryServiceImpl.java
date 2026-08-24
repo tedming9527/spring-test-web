@@ -96,6 +96,9 @@ public class CategoryServiceImpl implements CategoryService {
             return false;
           }
           redisService.delete(cacheKey);
+          if ("TX_ROLLBACK_TEST".equals(name)) {
+            throw new RuntimeException("报错开关");
+          }
           return true;
         } finally {
           redisService.unlock(lockKey, uuid);

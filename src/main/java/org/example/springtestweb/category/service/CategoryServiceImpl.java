@@ -80,12 +80,39 @@ public class CategoryServiceImpl implements CategoryService {
       return false;
     }
     category.setName(name);
-    int affectRows = categoryMapper.updateById(category);
-    if (affectRows != 1) {
-      return false;
+
+    String cacheKey = "category:children:" + category.getParentId();
+    String lockKey = "lock:" + cacheKey;
+    long waitDeadline = System.nanoTime() + Duration.ofMillis(900).toNanos();
+    long maxSleepNanos = Duration.ofMillis(300).toNanos();
+    String uuid = UUID.randomUUID().toString();
+    while (System.nanoTime() < waitDeadline) {
+      if (redisService.lock(lockKey, uuid)) {
+        try {
+          int affectRows = categoryMapper.updateById(category);
+          if (affectRows != 1) {
+            return false;
+          }
+          redisService.delete(cacheKey);
+          return true;
+        } finally {
+          redisService.unlock(lockKey, uuid);
+        }
+      } else {
+        long remainingNanos = waitDeadline - System.nanoTime();
+        if (remainingNanos <= 0) {
+          break;
+        }
+        long sleepNanos = Math.min(maxSleepNanos, remainingNanos);
+        try {
+          TimeUnit.NANOSECONDS.sleep(sleepNanos);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new IllegalStateException("等待修改分类时被中断", e);
+        }
+      }
     }
-    String key = "category:children:" + category.getParentId();
-    redisService.delete(key);
-    return true;
+    throw new IllegalStateException("分类正在更新，请稍后重试");
+
   }
 }

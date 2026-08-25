@@ -7,12 +7,13 @@ import org.example.springtestweb.redis.service.RedisService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-
-import static java.lang.Thread.sleep;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 public class CategoryServiceImpl implements CategoryService {
@@ -90,19 +91,28 @@ public class CategoryServiceImpl implements CategoryService {
     String uuid = UUID.randomUUID().toString();
     while (System.nanoTime() < waitDeadline) {
       if (redisService.lock(lockKey, uuid)) {
-        try {
-          int affectRows = categoryMapper.updateById(category);
-          if (affectRows != 1) {
-            return false;
+        AtomicBoolean databaseUpdated = new AtomicBoolean(false);
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+          @Override
+          public void afterCommit() {
+           if (databaseUpdated.get()) {
+             redisService.delete(cacheKey);
+           }
           }
-          redisService.delete(cacheKey);
-          if ("TX_ROLLBACK_TEST".equals(name)) {
-            throw new RuntimeException("报错开关");
+          @Override
+          public void afterCompletion(int status) {
+            redisService.unlock(lockKey, uuid);
           }
-          return true;
-        } finally {
-          redisService.unlock(lockKey, uuid);
+        });
+        int affectRows = categoryMapper.updateById(category);
+        if (affectRows != 1) {
+          return false;
         }
+        databaseUpdated.set(true);
+        if ("TX_ROLLBACK_TEST".equals(name)) {
+          throw new RuntimeException("报错开关");
+        }
+        return true;
       } else {
         long remainingNanos = waitDeadline - System.nanoTime();
         if (remainingNanos <= 0) {

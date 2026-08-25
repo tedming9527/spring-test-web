@@ -39,19 +39,21 @@
 
 Redis缓存击穿保护、锁所有权、时间预算、10并发重建、基础读写共享锁、Spring方法级事务提交与运行时异常回滚均已完成手工运行验收。
 
-**当前唯一主课题：修正并验收“Redis解锁早于MySQL事务提交”的时序边界。**
+**当前唯一主课题：验收事务回滚时保留缓存并释放Redis锁。**
 
 当前代码在 `updateName()` 内执行：
 
 ```text
-UPDATE（事务内，尚未提交）
-→ 删除Redis缓存
-→ finally释放Redis锁
+获得Redis锁
+→ 注册TransactionSynchronization
+→ UPDATE（事务内，尚未提交）
 → 方法返回
 → Spring事务代理提交MySQL
+→ afterCommit删除Redis缓存
+→ afterCompletion释放Redis锁
 ```
 
-风险窗口：解锁后、提交前，读请求可能获得锁，查询到旧的已提交数据并回写旧缓存。
+正常提交路径已手工验收；回滚路径与并发修复路径尚待运行验收。
 
 ## 已验收
 
@@ -104,7 +106,7 @@ UPDATE（事务内，尚未提交）
   - 读请求A持锁并写入旧缓存后，用UUID-A执行Lua解锁。
   - 写请求B等待A，随后以UUID-B获得新租约、更新数据库、删除A写入的旧缓存，并执行第二次Lua解锁。
   - 最终缓存和锁均不存在，下一次读取能够从MySQL重建新值。
-- 写锁释放已经放入 `finally`；中断处理会恢复中断标记。
+- 基础实验阶段写锁释放曾放入 `finally`；当前事务时序修复已改为在 `afterCompletion` 中释放。中断处理会恢复中断标记。
 
 证据边界：手工Redis `MONITOR` 验收通过，尚未固化为自动化测试。
 
@@ -120,18 +122,37 @@ UPDATE（事务内，尚未提交）
 
 证据边界：手工运行验收通过，尚未建立事务自动化测试。
 
+### 7. Redis解锁早于MySQL事务提交的竞态复现
+
+- 验收日期：2026-08-25。
+- 在 `updateName()` 的 Redis 解锁后、事务方法返回前临时暂停3秒，稳定放大事务尚未提交的窗口。
+- 写请求在事务内完成 `UPDATE` 和缓存删除，随后释放Redis锁；并发读请求在写事务提交前获得锁，从MySQL读取旧的已提交值并写回Redis。
+- 写事务最终提交后，学员现场确认最终状态为：MySQL保存新值，Redis保留旧值。
+- 该结果证明基础读写共享锁没有覆盖Spring事务真正提交的时刻，旧值回写是可复现竞态，不是理论推测。
+
+证据边界：本次为手工故障注入实验；学员确认了最终MySQL与Redis值，原始请求、MyBatis事务日志和Redis `MONITOR` 输出尚未保存进仓库。临时3秒暂停不属于正式实现，修复前必须删除。
+
+### 8. 事务提交后的缓存失效与锁释放——正常提交路径
+
+- 验收日期：2026-08-25。
+- `updateName()` 已通过 `TransactionSynchronizationManager.registerSynchronization()` 注册事务回调。
+- 数据库更新成功后，`afterCommit()` 删除 `category:children:{parentId}`；`afterCompletion()` 在事务结束后释放对应Redis锁。
+- `./mvnw -q -DskipTests compile` 已通过。
+- 学员按正常更新路径现场确认：接口成功、MySQL保存新值、提交后Redis旧缓存不存在、锁无残留，下一次GET能够读取新值并重建缓存。
+
+证据边界：本次为手工运行验收，原始HTTP响应、MySQL查询、Redis `MONITOR` 与Redis CLI输出未保存进仓库；回滚和并发修复路径仍需单独验收。
+
 ## 已实现但尚未完成生产级闭环
 
 ### 事务与Redis时序
 
-当前 `@Transactional updateName()` 在方法内部删除缓存并在 `finally` 中解锁；Spring数据库事务在方法返回之后提交。需要专门复现并修复：
+当前 `@Transactional updateName()` 已将缓存删除移至 `afterCommit()`，并将锁释放移至 `afterCompletion()`。正常提交路径已验收，仍需证明回滚与并发路径：
 
 ```text
-UPDATE未提交
-→ DEL缓存
-→ Redis解锁
-→ 读请求查询旧提交值并回写缓存
-→ 写事务提交
+UPDATE后抛出运行时异常
+→ MySQL回滚
+→ 不执行afterCommit，保留旧缓存
+→ 执行afterCompletion，释放Redis锁
 ```
 
 验收不能只观察Redis，必须同时记录MyBatis/事务日志、最终MySQL值和最终缓存值。
@@ -144,9 +165,9 @@ UPDATE未提交
 
 ## 下一步顺序
 
-1. 复现“Redis解锁早于数据库提交”导致的旧值回写。
-2. 学习并实现事务提交后的缓存失效（`afterCommit`），同时明确回滚路径。
-3. 评估锁应在提交前还是事务完成后释放，并避免事务在等待Redis锁期间长期占用数据库连接。
+1. 验收 `TX_ROLLBACK_TEST` 回滚时不删除缓存且锁无残留。
+2. 重新运行并发窗口实验，证明读请求不能在写事务提交前获得锁并回写旧值。
+3. 评估事务在等待Redis锁期间长期占用数据库连接的问题。
 4. 将事务提交、回滚、并发旧值回写固化为JUnit 5自动化测试，删除 `TX_ROLLBACK_TEST` 开关。
 5. 验证数据库查询时间超过5秒锁租约、数据库异常和缓存删除失败。
 6. 进入容量实验：数据库连接池最大2、等待1秒、SQL占用2秒、5个并发请求。

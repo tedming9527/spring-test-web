@@ -38,6 +38,13 @@ Spring Boot Web 学习项目，用于验证 Spring Boot 4.x + MyBatis-Plus 的�
 - 需要参考 `mephisto` 时先确认当前任务能否读取该目录；如果不可见，应提醒用户将它引入当前工作区。
 - 当前进度以 `docs/learning/PROGRESS.md` 为准；开始教学前先结合该文件、最新 Git 提交和当前代码复核，避免只依赖聊天记忆。
 
+### Git 约定
+
+- 本项目是个人训练仓库，不套用企业仓库的受保护分支、Issue 绑定和 PR 流程。
+- 用户明确要求创建 commit 时，允许直接在 `master` 分支创建本地 commit，不要求关联 GitHub Issue。
+- 未经用户明确要求，不执行 push、merge 或部署。
+- 提交前仍需检查分支、工作区状态、变更统计和完整差异，确保只包含本次学习任务的修改。
+
 ## 技术栈
 
 | 组件 | 版本 |

@@ -109,16 +109,6 @@ public class CategoryServiceImpl implements CategoryService {
           return false;
         }
         databaseUpdated.set(true);
-
-        if ("TX_CONCURRENCY_TEST".equals(name)) {
-          try {
-            TimeUnit.MILLISECONDS.sleep(600);
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("并发事务实验被中断", e);
-          }
-        }
-
         if ("TX_ROLLBACK_TEST".equals(name)) {
           throw new RuntimeException("报错开关");
         }

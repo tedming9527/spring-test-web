@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
@@ -34,6 +35,14 @@ public class CategoryTransactionalService {
       return false;
     }
     databaseUpdated.set(true);
+    if("TX_POOL_TEST".equals(name)){
+      try {
+        TimeUnit.SECONDS.sleep(2);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new IllegalStateException("连接池容量实验中断", e);
+      }
+    }
     if ("TX_ROLLBACK_TEST".equals(name)) {
       throw new RuntimeException("报错开关");
     }

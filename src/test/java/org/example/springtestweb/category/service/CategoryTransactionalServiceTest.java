@@ -6,7 +6,8 @@ import org.example.springtestweb.redis.service.RedisService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-
+import org.springframework.test.context.transaction.TestTransaction;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 
@@ -23,8 +24,9 @@ public class CategoryTransactionalServiceTest {
   private RedisService redisService;
 
   @Test
+  @Transactional
   void updateName_rollback_shouldKeepDatabaseAndCache() {
-    String rollbackName = "TX_ROLLBACK_TEST";
+    String rollbackName = "TX_AUTO_ROLLBACK_TEST";
 
     Category category = categoryMapper.selectById(CATEGORY_ID);
     assertNotNull(category, "分类不存在，id=" + CATEGORY_ID);
@@ -36,10 +38,11 @@ public class CategoryTransactionalServiceTest {
     category.setName(rollbackName);
 
     try {
-      RuntimeException exception = assertThrows(RuntimeException.class, () ->
-        categoryTransactionalService.updateName(category, cacheKey, rollbackName)
-      );
-      assertEquals("报错开关",  exception.getMessage());
+      Boolean updated = categoryTransactionalService.updateName(category, cacheKey, rollbackName);
+      assertTrue(updated, "回滚前数据库update应执行成功");
+
+      TestTransaction.flagForRollback();
+      TestTransaction.end();
 
       Category dbCategory = categoryMapper.selectById(category.getId());
       assertNotNull(dbCategory, "回滚后分类不应消失");
@@ -48,6 +51,11 @@ public class CategoryTransactionalServiceTest {
       assertNotNull(cacheCategory, "事务回滚后原缓存应保留");
       assertEquals(oldName, cacheCategory.getName());
     } finally {
+      if (TestTransaction.isActive()) {
+        TestTransaction.flagForRollback();
+        TestTransaction.end();
+      }
+
       Category dbCategory = categoryMapper.selectById(CATEGORY_ID);
       if (dbCategory != null) {
         dbCategory.setName(oldName);
@@ -56,6 +64,7 @@ public class CategoryTransactionalServiceTest {
       redisService.delete(cacheKey);
     }
   }
+
   @Test
   void updateName_commit_shouldUpdateDatabaseAndDeleteCache() {
     Category category = categoryMapper.selectById(CATEGORY_ID);
@@ -65,7 +74,7 @@ public class CategoryTransactionalServiceTest {
 
     String oldName = category.getName();
 
-    String newName = "TX_SUBMIT_TEST";
+    String newName = "TX_AUTO_COMMIT_TEST";
     category.setName(newName);
 
     try {

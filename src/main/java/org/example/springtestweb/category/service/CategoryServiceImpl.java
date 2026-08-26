@@ -6,14 +6,10 @@ import org.example.springtestweb.category.vo.CategoryVo;
 import org.example.springtestweb.redis.service.RedisService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 public class CategoryServiceImpl implements CategoryService {
@@ -21,6 +17,8 @@ public class CategoryServiceImpl implements CategoryService {
   private CategoryMapper categoryMapper;
   @Autowired
   private RedisService redisService;
+  @Autowired
+  private CategoryTransactionalService categoryTransactionalService;
 
   private List<CategoryVo> getCachedCategory(String key) {
     return redisService.getList(key, CategoryVo.class);
@@ -76,7 +74,6 @@ public class CategoryServiceImpl implements CategoryService {
   }
 
   @Override
-  @Transactional
   public boolean updateName(Long id, String name) {
     Category category =  categoryMapper.selectById(id);
     if (category == null) {
@@ -91,28 +88,11 @@ public class CategoryServiceImpl implements CategoryService {
     String uuid = UUID.randomUUID().toString();
     while (System.nanoTime() < waitDeadline) {
       if (redisService.lock(lockKey, uuid)) {
-        AtomicBoolean databaseUpdated = new AtomicBoolean(false);
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-          @Override
-          public void afterCommit() {
-           if (databaseUpdated.get()) {
-             redisService.delete(cacheKey);
-           }
-          }
-          @Override
-          public void afterCompletion(int status) {
-            redisService.unlock(lockKey, uuid);
-          }
-        });
-        int affectRows = categoryMapper.updateById(category);
-        if (affectRows != 1) {
-          return false;
+        try {
+          return categoryTransactionalService.updateName(category, cacheKey,  name);
+        } finally {
+          redisService.unlock(lockKey, uuid);
         }
-        databaseUpdated.set(true);
-        if ("TX_ROLLBACK_TEST".equals(name)) {
-          throw new RuntimeException("报错开关");
-        }
-        return true;
       } else {
         long remainingNanos = waitDeadline - System.nanoTime();
         if (remainingNanos <= 0) {

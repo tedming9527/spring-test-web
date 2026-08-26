@@ -222,6 +222,17 @@ Spring代理调用边界已学习：学员已理解代理对象包裹Spring Bean
 
 证据边界：本次为手工容量实验；并发请求结果、Hikari异常和MySQL事务表由学员在会话中提供，原始HTTP响应、应用完整日志和连续连接池指标尚未保存进仓库。当前 `TX_POOL_TEST` 暂停及极小连接池参数是故障注入配置，不是生产推荐值；自动化容量测试建立后应移除或隔离。
 
+### 12. 分类事务提交与回滚的最小自动化回归
+
+- 验收日期：2026-08-26。
+- `CategoryTransactionalServiceTest` 已使用真实父分类缓存Key `category:children:{parentId}`，不再使用错误的分类ID和缺少冒号的Key。
+- 正常提交测试验证：数据库保存新名称，事务 `afterCommit()` 删除旧缓存。
+- 异常回滚测试验证：捕获预期的 `RuntimeException("报错开关")`，MySQL保持旧名称，Redis原缓存与旧名称均保留。
+- 两条测试都在 `finally` 中恢复数据库名称并删除测试缓存，主要业务断言在清理前完成。
+- 运行证据：`./mvnw -Dtest=CategoryTransactionalServiceTest test` 输出 `Tests run: 2, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`。
+
+证据边界：当前是依赖种子分类 `1101` 以及本机真实MySQL、Redis的集成测试；已通过前置断言在种子数据缺失时快速失败，后续可再升级为测试自行创建与删除专用数据。
+
 ## 已实现但尚未完成生产级闭环
 
 ### 事务与Redis时序
@@ -276,7 +287,7 @@ Spring代理调用边界已学习：学员已理解代理对象包裹Spring Bean
 
 ### 阶段A：整理当前可交付基线（最多2课）
 
-1. 修正`CategoryTransactionalServiceTest`的真实缓存Key和测试清理，保留正常提交、回滚两条最小回归证据。
+1. **已完成（2026-08-26）**：修正`CategoryTransactionalServiceTest`的真实缓存Key和测试清理，保留正常提交、回滚两条最小回归证据。
 2. 将`TX_ROLLBACK_TEST`、`TX_POOL_TEST`和极小HikariCP参数移出默认业务路径，放入测试夹具或实验配置；默认应用恢复可交付状态。
 
 退出条件：分类更新接口可正常运行，实验代码不污染默认配置，提交/回滚有最小自动化保护。到达退出条件后立即进入XXL-JOB，不继续扩展Redis专项。

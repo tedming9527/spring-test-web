@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+
 import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -22,30 +23,66 @@ public class CategoryTransactionalServiceTest {
   private RedisService redisService;
 
   @Test
-  void updateName_commit_shouldUpdateDatabaseAndDeleteCache() {
-    Category category = categoryMapper.selectById(CATEGORY_ID);
-    String cacheKey = "category:children" + CATEGORY_ID;
-    String lockKey = "lock:" + cacheKey;
+  void updateName_rollback_shouldKeepDatabaseAndCache() {
+    String rollbackName = "TX_ROLLBACK_TEST";
 
-    assertNotNull(category, "测试分类不存在，id=" + CATEGORY_ID);
+    Category category = categoryMapper.selectById(CATEGORY_ID);
+    assertNotNull(category, "分类不存在，id=" + CATEGORY_ID);
+
+    String cacheKey = "category:children:" + category.getParentId();
+    redisService.setObject(cacheKey, category, Duration.ofMinutes(10));
 
     String oldName = category.getName();
-    String newName = "TX_AUTO_COMMIT_TEST";
+    category.setName(rollbackName);
 
-    redisService.set(cacheKey, "old-cache", Duration.ofMinutes(1));
+    try {
+      RuntimeException exception = assertThrows(RuntimeException.class, () ->
+        categoryTransactionalService.updateName(category, cacheKey, rollbackName)
+      );
+      assertEquals("报错开关",  exception.getMessage());
+
+      Category dbCategory = categoryMapper.selectById(category.getId());
+      assertNotNull(dbCategory, "回滚后分类不应消失");
+      assertEquals(oldName, dbCategory.getName());
+      Category cacheCategory = redisService.getObject(cacheKey,  Category.class);
+      assertNotNull(cacheCategory, "事务回滚后原缓存应保留");
+      assertEquals(oldName, cacheCategory.getName());
+    } finally {
+      Category dbCategory = categoryMapper.selectById(CATEGORY_ID);
+      if (dbCategory != null) {
+        dbCategory.setName(oldName);
+        categoryMapper.updateById(dbCategory);
+      }
+      redisService.delete(cacheKey);
+    }
+  }
+  @Test
+  void updateName_commit_shouldUpdateDatabaseAndDeleteCache() {
+    Category category = categoryMapper.selectById(CATEGORY_ID);
+    assertNotNull(category, "分类不存在，id=" + CATEGORY_ID);
+    String cacheKey = "category:children:" + category.getParentId();
+    redisService.setObject(cacheKey, category, Duration.ofMinutes(10));
+
+    String oldName = category.getName();
+
+    String newName = "TX_SUBMIT_TEST";
     category.setName(newName);
 
     try {
       Boolean updated = categoryTransactionalService.updateName(category, cacheKey, newName);
-      assertTrue(updated);
-      Category updatedCategory = categoryMapper.selectById(category.getId());
-      assertEquals(newName, updatedCategory.getName());
-      assertNull(redisService.get(cacheKey));
+      assertTrue(updated, "事务提交路径的分类更新应成功");
+      Category dbCategory = categoryMapper.selectById(CATEGORY_ID);
+      assertNotNull(dbCategory, "事务提交后分类记录不应该消失");
+      assertEquals(newName, dbCategory.getName(), "事务提交后数据库应保存新名称");
+      Category cacheCategory = redisService.getObject(cacheKey,  Category.class);
+      assertNull(cacheCategory, "事务提交后分类缓存应被删除");
     } finally {
-      Category updatedCategory = categoryMapper.selectById(category.getId());
-      updatedCategory.setName(oldName);
-      categoryMapper.updateById(updatedCategory);
-      redisService.delete(lockKey);
+      Category dbCategory = categoryMapper.selectById(CATEGORY_ID);
+      if (dbCategory != null) {
+        dbCategory.setName(oldName);
+        categoryMapper.updateById(dbCategory);
+      }
+      redisService.delete(cacheKey);
     }
   }
 }

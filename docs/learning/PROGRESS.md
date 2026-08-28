@@ -297,6 +297,15 @@ Spring代理调用边界已学习：学员已理解代理对象包裹Spring Bean
 
 业务目标：实现“分类变更补偿任务”，扫描待处理或处理超时的记录并安全重试。
 
+#### 2026-08-28：可靠同步模型与任务表（已实现，待自动化验收）
+
+- 已从业务视角完成XXL-JOB与可靠同步的第一轮学习：本地变更与待同步记录、任务状态机、原子领取、幂等、版本防乱序、处理租约、退避重试、熔断限流、批处理及高低优先级让路。
+- 已新增 `category_change_event` 表迁移 `V20260828__create_category_change_event_table.sql`，字段覆盖分类ID、分类版本、事件类型、最小同步快照、状态、重试、失败摘要、下次重试时间和审计字段；已为待处理扫描与分类版本查询建立组合索引。
+- 已确认本机数据库表存在。`src/main/resources/db/rollback/R20260828__create_category_change_event_table.sql` 是开发环境人工回滚脚本，不由当前Flyway自动执行；任务表存在数据后不得用该脚本回滚。
+- 当前尚未创建 `CategoryChangeEvent` 实体、Mapper、同事务事件写入、XXL-JOB Handler 或下游推送逻辑；因此任务状态机与补偿处理均未验收。
+
+下一步：创建 `CategoryChangeEvent` 实体与 Mapper，并用集成测试验证“分类更新成功时同事务创建PENDING事件；回滚时事件不落库”。
+
 1. 设计任务表和状态机，明确待处理、处理中、成功、失败及重试次数。
 2. 接入XXL-JOB执行器，Job入口只负责参数解析和调用Service。
 3. 验证人工触发、Cron触发、失败上报和执行日志。

@@ -108,6 +108,5 @@ public class CategoryServiceImpl implements CategoryService {
       }
     }
     throw new IllegalStateException("分类正在更新，请稍后重试");
-
   }
 }

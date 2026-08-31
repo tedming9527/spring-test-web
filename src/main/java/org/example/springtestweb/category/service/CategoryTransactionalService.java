@@ -29,10 +29,20 @@ public class CategoryTransactionalService {
         }
       }
     });
-   int affectRows = categoryMapper.updateById(category);
+    Long expectedVersion = category.getCategoryVersion();
+    if (expectedVersion == null) {
+      throw new IllegalStateException("分类版本不能为空");
+    }
+
+    int affectRows = categoryMapper.updateNameIfVersionMatches(
+      category.getId(),
+      category.getName(),
+      expectedVersion
+    );
     if (affectRows != 1) {
       return false;
     }
+    category.setCategoryVersion(expectedVersion + 1);
     databaseUpdated.set(true);
     return true;
   }

@@ -302,9 +302,10 @@ Spring代理调用边界已学习：学员已理解代理对象包裹Spring Bean
 - 已从业务视角完成XXL-JOB与可靠同步的第一轮学习：本地变更与待同步记录、任务状态机、原子领取、幂等、版本防乱序、处理租约、退避重试、熔断限流、批处理及高低优先级让路。
 - 已新增 `category_change_event` 表迁移 `V20260828__create_category_change_event_table.sql`，字段覆盖分类ID、分类版本、事件类型、最小同步快照、状态、重试、失败摘要、下次重试时间和审计字段；已为待处理扫描与分类版本查询建立组合索引。
 - 已确认本机数据库表存在。`src/main/resources/db/rollback/R20260828__create_category_change_event_table.sql` 是开发环境人工回滚脚本，不由当前Flyway自动执行；任务表存在数据后不得用该脚本回滚。
-- 当前尚未创建 `CategoryChangeEvent` 实体、Mapper、同事务事件写入、XXL-JOB Handler 或下游推送逻辑；因此任务状态机与补偿处理均未验收。
+- 2026-08-31（`b2994b7`）：已创建 `CategoryChangeEvent` 实体与 Mapper；已通过 `V20260831__add_category_version_to_goods_category.sql` 为 `goods_category` 增加分类版本字段。
+- 2026-08-31：已实现分类名称的条件更新：仅当 `category_version` 与读取版本一致时才更新名称并原子递增版本；事务提交与显式回滚测试会断言名称、缓存和版本结果。事件表同事务写入、XXL-JOB Handler 与下游推送尚未实现，不能视为补偿闭环验收通过。
 
-下一步：创建 `CategoryChangeEvent` 实体与 Mapper，并用集成测试验证“分类更新成功时同事务创建PENDING事件；回滚时事件不落库”。
+下一步：在分类条件更新成功后，于同一事务插入 `PENDING` 状态的 `category_change_event`；用集成测试验证“更新提交则事件落库，外层回滚则事件不落库”。
 
 1. 设计任务表和状态机，明确待处理、处理中、成功、失败及重试次数。
 2. 接入XXL-JOB执行器，Job入口只负责参数解析和调用Service。

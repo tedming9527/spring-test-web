@@ -35,6 +35,7 @@ public class CategoryTransactionalServiceTest {
     redisService.setObject(cacheKey, category, Duration.ofMinutes(10));
 
     String oldName = category.getName();
+    Long oldVersion = category.getCategoryVersion();
     category.setName(rollbackName);
 
     try {
@@ -47,6 +48,7 @@ public class CategoryTransactionalServiceTest {
       Category dbCategory = categoryMapper.selectById(category.getId());
       assertNotNull(dbCategory, "回滚后分类不应消失");
       assertEquals(oldName, dbCategory.getName());
+      assertEquals(oldVersion, dbCategory.getCategoryVersion());
       Category cacheCategory = redisService.getObject(cacheKey,  Category.class);
       assertNotNull(cacheCategory, "事务回滚后原缓存应保留");
       assertEquals(oldName, cacheCategory.getName());
@@ -59,6 +61,7 @@ public class CategoryTransactionalServiceTest {
       Category dbCategory = categoryMapper.selectById(CATEGORY_ID);
       if (dbCategory != null) {
         dbCategory.setName(oldName);
+        dbCategory.setCategoryVersion(oldVersion);
         categoryMapper.updateById(dbCategory);
       }
       redisService.delete(cacheKey);
@@ -73,6 +76,7 @@ public class CategoryTransactionalServiceTest {
     redisService.setObject(cacheKey, category, Duration.ofMinutes(10));
 
     String oldName = category.getName();
+    Long oldVersion = category.getCategoryVersion();
 
     String newName = "TX_AUTO_COMMIT_TEST";
     category.setName(newName);
@@ -83,12 +87,15 @@ public class CategoryTransactionalServiceTest {
       Category dbCategory = categoryMapper.selectById(CATEGORY_ID);
       assertNotNull(dbCategory, "事务提交后分类记录不应该消失");
       assertEquals(newName, dbCategory.getName(), "事务提交后数据库应保存新名称");
+      assertEquals(oldVersion + 1, dbCategory.getCategoryVersion(), "事务提交后分类版本应加一");
+      assertEquals(oldVersion + 1, category.getCategoryVersion(), "内存对象应同步为新版本");
       Category cacheCategory = redisService.getObject(cacheKey,  Category.class);
       assertNull(cacheCategory, "事务提交后分类缓存应被删除");
     } finally {
       Category dbCategory = categoryMapper.selectById(CATEGORY_ID);
       if (dbCategory != null) {
         dbCategory.setName(oldName);
+        dbCategory.setCategoryVersion(oldVersion);
         categoryMapper.updateById(dbCategory);
       }
       redisService.delete(cacheKey);

@@ -305,8 +305,10 @@ Spring代理调用边界已学习：学员已理解代理对象包裹Spring Bean
 - 2026-08-31（`b2994b7`）：已创建 `CategoryChangeEvent` 实体与 Mapper；已通过 `V20260831__add_category_version_to_goods_category.sql` 为 `goods_category` 增加分类版本字段。
 - 2026-08-31：已实现分类名称的条件更新：仅当 `category_version` 与读取版本一致时才更新名称并原子递增版本；事务提交与显式回滚测试会断言名称、缓存和版本结果。
 - 2026-08-31：已实现并验收本地事件表写入：分类条件更新成功后，在同一事务插入 `CATEGORY_NAME_CHANGED` 事件，依赖数据库默认值写入 `PENDING` 与 `retryCount=0`。`CategoryTransactionalServiceTest` 真实连接 MySQL 与 Redis 运行 2 项测试通过：提交路径验证分类、事件和缓存删除；显式回滚路径验证分类与缓存恢复且事件不存在。测试使用 UUID 隔离数据并清理提交或异常残留的测试事件。
+- 2026-08-31（迁移 `ab19661`）：已增加 `processing_token`、`processing_lease_until` 及领取扫描索引，修正实体映射；已实现 XML 条件更新，仅允许到达执行时间的 `PENDING` 事件变为 `PROCESSING`，并使用数据库时间写入租约与审计时间。
+- 2026-08-31：单条原子领取基础实验已验收。`CategoryChangeEventMapperTest` 真实连接 MySQL 执行：token-A 首次领取更新 1 行，token-B 再次领取更新 0 行，最终记录保持 `PROCESSING/token-A` 且租约晚于当前时间，测试事件最终删除。该证据验证了顺序竞争和条件更新，尚未验证两个独立线程同时竞争。
 
-下一步：实现 `PENDING` 事件的原子领取：仅允许一个执行器将符合条件的记录从 `PENDING` 更新为 `PROCESSING`，并写入处理租约；用并发集成测试验证两个执行器不会同时领取同一条事件。
+下一步：把单条领取实验升级为两个独立线程同时竞争同一条事件，验证两个结果恰好为一个 `1`、一个 `0`，并确认数据库最终 token 属于唯一获胜者。
 
 1. 设计任务表和状态机，明确待处理、处理中、成功、失败及重试次数。
 2. 接入XXL-JOB执行器，Job入口只负责参数解析和调用Service。

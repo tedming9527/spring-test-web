@@ -27,7 +27,7 @@ spring:
     baseline-description: "Baseline after V20260515 has been applied"
 mybatis-plus:
   mapper-locations: classpath*:org/example/**/mapper/*Mapper.xml
-  type-aliases-package: org.example.springtestweb.**.vo, org.example.springtestweb.**.entiry,  org.example.springtestweb.**.model
+  type-aliases-package: org.example.springtestweb.**.vo, org.example.springtestweb.**.entity,  org.example.springtestweb.**.model
   configuration:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl

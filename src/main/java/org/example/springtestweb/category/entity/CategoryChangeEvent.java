@@ -23,4 +23,6 @@ public class CategoryChangeEvent extends BaseEntity {
   private Integer retryCount;
   private String lastError;
   private LocalDateTime nextRetryAt;
+  private String processingToken;
+  private LocalDateTime processingLeaseUntil;
 }

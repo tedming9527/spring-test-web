@@ -14,6 +14,7 @@ Spring Boot Web 学习项目，用于验证 Spring Boot 4.x + MyBatis-Plus 的�
 
 ### 教学方式
 
+- 每次开始或继续教学前，必须完整读取 `docs/learning/TEACHING_STRATEGY.md`，按其中记录的最新教学策略执行；发现更高效且可复用的方法时，在同一轮更新该文档。
 - 每次只推进一个真实机制和一个实验。
 - 最多回答 2～3 个理论问题后进入实践。
 - 解释按照“是什么、标准、项目实际、评价”展开，必要时使用前端类比。
@@ -24,7 +25,7 @@ Spring Boot Web 学习项目，用于验证 Spring Boot 4.x + MyBatis-Plus 的�
 
 ### 学习进度同步闭环
 
-- 每次教学开始前，先读取 `docs/learning/PROGRESS.md`，并结合当前代码、Git 状态和最近提交复核实际起点。
+- 每次教学开始前，先读取 `docs/learning/TEACHING_STRATEGY.md` 与 `docs/learning/PROGRESS.md`，并结合当前代码、Git 状态和最近提交复核实际起点。
 - 每完成一个知识点或实验，导师必须判断其状态是“已学习”“已实现”还是“已验收”。
 - 学员能够复述或完成理论问答，可记为“已学习”；代码已存在并通过基本编译，可记为“已实现”；只有取得约定的运行证据后，才可记为“已验收”。
 - 当导师与学员确认本轮验收通过后，应在同一轮更新 `docs/learning/PROGRESS.md`，记录日期、知识点、状态、关键证据、关联提交和下一步。
@@ -92,7 +93,12 @@ cd frontend && npm run build
 
 ## 文档规则
 
-所有学习笔记、知识文档记录到 iCloud，不在项目 `docs/` 内保存：
+项目教学的跨设备事实源保存在版本库：
+
+- `docs/learning/PROGRESS.md`：学习进度、验收证据和下一步。
+- `docs/learning/TEACHING_STRATEGY.md`：教学方法、代码检查规则和策略迭代记录。
+
+其他学习笔记、知识文档仍记录到 iCloud，不在项目 `docs/` 内保存：
 
 **文档目录**: `/Users/dongdeming/Library/Mobile Documents/com~apple~CloudDocs/mephisto解析/`
 

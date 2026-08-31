@@ -19,7 +19,7 @@ public class CategoryTransactionalService {
   private RedisService redisService;
 
   @Transactional
-  public Boolean updateName(Category category, String cacheKey, String name) {
+  public Boolean updateName(Category category, String cacheKey) {
     AtomicBoolean databaseUpdated = new AtomicBoolean(false);
     TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
       @Override
@@ -29,7 +29,7 @@ public class CategoryTransactionalService {
         }
       }
     });
-    int affectRows = categoryMapper.updateById(category);
+   int affectRows = categoryMapper.updateById(category);
     if (affectRows != 1) {
       return false;
     }

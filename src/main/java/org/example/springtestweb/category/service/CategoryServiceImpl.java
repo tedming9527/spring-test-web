@@ -89,7 +89,7 @@ public class CategoryServiceImpl implements CategoryService {
     while (System.nanoTime() < waitDeadline) {
       if (redisService.lock(lockKey, uuid)) {
         try {
-          return categoryTransactionalService.updateName(category, cacheKey,  name);
+          return categoryTransactionalService.updateName(category, cacheKey);
         } finally {
           redisService.unlock(lockKey, uuid);
         }

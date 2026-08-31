@@ -38,7 +38,7 @@ public class CategoryTransactionalServiceTest {
     category.setName(rollbackName);
 
     try {
-      Boolean updated = categoryTransactionalService.updateName(category, cacheKey, rollbackName);
+      Boolean updated = categoryTransactionalService.updateName(category, cacheKey);
       assertTrue(updated, "回滚前数据库update应执行成功");
 
       TestTransaction.flagForRollback();
@@ -78,7 +78,7 @@ public class CategoryTransactionalServiceTest {
     category.setName(newName);
 
     try {
-      Boolean updated = categoryTransactionalService.updateName(category, cacheKey, newName);
+      Boolean updated = categoryTransactionalService.updateName(category, cacheKey);
       assertTrue(updated, "事务提交路径的分类更新应成功");
       Category dbCategory = categoryMapper.selectById(CATEGORY_ID);
       assertNotNull(dbCategory, "事务提交后分类记录不应该消失");

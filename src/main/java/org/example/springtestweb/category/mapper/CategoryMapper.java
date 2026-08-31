@@ -1,8 +1,6 @@
 package org.example.springtestweb.category.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import org.apache.ibatis.annotations.Insert;
-import org.apache.ibatis.annotations.Param;
 import org.example.springtestweb.category.entity.Category;
 import org.example.springtestweb.category.vo.CategoryVo;
 

@@ -24,6 +24,9 @@ public class Category extends BaseEntity {
   @TableId(type = IdType.AUTO)
   private Long id;
 
+  /** 分类变更版本号 */
+  private Long categoryVersion;
+
   /** 分类名称 */
   private String name;
 

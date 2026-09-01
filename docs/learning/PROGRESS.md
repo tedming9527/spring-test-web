@@ -1,6 +1,6 @@
 # Spring Boot 企业后端实战学习进度
 
-更新时间：2026-08-26
+更新时间：2026-09-01
 
 ## 使用规则
 
@@ -307,8 +307,9 @@ Spring代理调用边界已学习：学员已理解代理对象包裹Spring Bean
 - 2026-08-31：已实现并验收本地事件表写入：分类条件更新成功后，在同一事务插入 `CATEGORY_NAME_CHANGED` 事件，依赖数据库默认值写入 `PENDING` 与 `retryCount=0`。`CategoryTransactionalServiceTest` 真实连接 MySQL 与 Redis 运行 2 项测试通过：提交路径验证分类、事件和缓存删除；显式回滚路径验证分类与缓存恢复且事件不存在。测试使用 UUID 隔离数据并清理提交或异常残留的测试事件。
 - 2026-08-31（迁移 `ab19661`）：已增加 `processing_token`、`processing_lease_until` 及领取扫描索引，修正实体映射；已实现 XML 条件更新，仅允许到达执行时间的 `PENDING` 事件变为 `PROCESSING`，并使用数据库时间写入租约与审计时间。
 - 2026-08-31：单条原子领取基础实验已验收。`CategoryChangeEventMapperTest` 真实连接 MySQL 执行：token-A 首次领取更新 1 行，token-B 再次领取更新 0 行，最终记录保持 `PROCESSING/token-A` 且租约晚于当前时间，测试事件最终删除。该证据验证了顺序竞争和条件更新，尚未验证两个独立线程同时竞争。
+- 2026-09-01：两线程并发原子领取已验收。`CategoryChangeEventMapperTest` 使用两线程池、准备门闩和起跑门闩，让 token-A 与 token-B 同时竞争同一条 `PENDING` 事件。MyBatis 日志显示两个独立 `SqlSession` 和两个数据库连接执行同一条条件 UPDATE，影响行数分别为 1 和 0；本次 token-B 获胜，最终数据库记录为 `PROCESSING/token-B` 且租约有效。`./mvnw -Dtest=CategoryChangeEventMapperTest test` 运行 1 项测试通过，`BUILD SUCCESS`，测试事件最终删除。
 
-下一步：把单条领取实验升级为两个独立线程同时竞争同一条事件，验证两个结果恰好为一个 `1`、一个 `0`，并确认数据库最终 token 属于唯一获胜者。
+下一步：接入 XXL-JOB 执行器，Job 入口只负责参数解析和调用 Service；首个业务切片先扫描并领取可执行的 `PENDING` 事件。
 
 1. 设计任务表和状态机，明确待处理、处理中、成功、失败及重试次数。
 2. 接入XXL-JOB执行器，Job入口只负责参数解析和调用Service。

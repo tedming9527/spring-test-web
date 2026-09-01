@@ -40,10 +40,10 @@ public class CategoryChangeEventServiceTest {
     categoryChangeEventMapper.insert(event3);
 
     List<CategoryChangeEvent> allClaimed = new ArrayList<>();
+    ExecutorService executorService = Executors.newFixedThreadPool(2);
 
     try {
 
-      ExecutorService executorService = Executors.newFixedThreadPool(2);
       CountDownLatch claimLatch = new CountDownLatch(2);
       CountDownLatch startLatch = new CountDownLatch(1);
 
@@ -112,6 +112,7 @@ public class CategoryChangeEventServiceTest {
             .set(CategoryChangeEvent::getUpdater, null)
         );
       }
+      executorService.shutdown();
     }
 
   }

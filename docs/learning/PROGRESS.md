@@ -309,7 +309,9 @@ Spring代理调用边界已学习：学员已理解代理对象包裹Spring Bean
 - 2026-08-31：单条原子领取基础实验已验收。`CategoryChangeEventMapperTest` 真实连接 MySQL 执行：token-A 首次领取更新 1 行，token-B 再次领取更新 0 行，最终记录保持 `PROCESSING/token-A` 且租约晚于当前时间，测试事件最终删除。该证据验证了顺序竞争和条件更新，尚未验证两个独立线程同时竞争。
 - 2026-09-01：两线程并发原子领取已验收。`CategoryChangeEventMapperTest` 使用两线程池、准备门闩和起跑门闩，让 token-A 与 token-B 同时竞争同一条 `PENDING` 事件。MyBatis 日志显示两个独立 `SqlSession` 和两个数据库连接执行同一条条件 UPDATE，影响行数分别为 1 和 0；本次 token-B 获胜，最终数据库记录为 `PROCESSING/token-B` 且租约有效。`./mvnw -Dtest=CategoryChangeEventMapperTest test` 运行 1 项测试通过，`BUILD SUCCESS`，测试事件最终删除。
 
-下一步：接入 XXL-JOB 执行器，Job 入口只负责参数解析和调用 Service；首个业务切片先扫描并领取可执行的 `PENDING` 事件。
+- 2026-09-01：Service 级"扫描+批量原子领取"切片已验收。`CategoryChangeEventService.claimPendingEvents(batchSize, leaseSeconds, updater)`：`selectClaimableEvents`（XML，到期 PENDING，`ORDER BY id ASC LIMIT`）→ 每条独立生成 UUID token → 逐条 `claimPendingEvent` → 仅影响行数=1 的进入返回列表并回写 token；方法不加事务（claim 逐条独立、行锁/连接逐条释放）。`CategoryChangeEventServiceTest` 两线程门闩并发验收：合计恰好领取 2 条到期事件且集合恰为该 2 条（规模+集合双重断言，等价于"不漏+不重"）、未到期事件不被领取、DB 断言 PROCESSING/token 与返回值一致/租约在未来。测试实现共享库隔离三件套：快照差集（`excludeIds`）、动态 batchSize、finally 中删除自带数据并用 `LambdaUpdateWrapper` 显式 `set(..., null)` 还原被顺手领取的存量（`updateById` 忽略 null 字段，不能用于置空）。`./mvnw -Dtest=CategoryChangeEventServiceTest,CategoryChangeEventMapperTest,CategoryTransactionalServiceTest test` 输出 4 项测试全部通过，`BUILD SUCCESS`。教学观察：学员先后经历"指定赢家断言"失败（并发胜负不确定，必须断言整体一致性）与"`break` 误替 `continue` 导致还原失效"（库内留下 PROCESSING 残留实证），两个坑均已通过真实红灯纠正。
+
+下一步：接入 XXL-JOB 执行器（先本机部署 xxl-job-admin 调度中心，含独立数据库），Job 入口只负责参数解析和调用 `CategoryChangeEventService.claimPendingEvents`，验证人工触发、Cron 触发和执行日志。
 
 1. 设计任务表和状态机，明确待处理、处理中、成功、失败及重试次数。
 2. 接入XXL-JOB执行器，Job入口只负责参数解析和调用Service。

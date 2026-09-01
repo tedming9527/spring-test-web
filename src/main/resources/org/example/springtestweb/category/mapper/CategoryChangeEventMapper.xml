@@ -17,4 +17,11 @@
                 OR next_retry_at &lt;= CURRENT_TIMESTAMP
             )
     </update>
+    <select id="selectClaimableEvents" resultType="categoryChangeEvent">
+        SELECT * FROM category_change_event
+        WHERE status = 'PENDING'
+            AND (next_retry_at IS NULL OR next_retry_at &lt;= CURRENT_TIMESTAMP)
+        ORDER BY id ASC
+        LIMIT #{batchSize}
+    </select>
 </mapper>

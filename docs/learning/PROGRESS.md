@@ -317,6 +317,8 @@ Spring代理调用边界已学习：学员已理解代理对象包裹Spring Bean
 
 下一步：接入 XXL-JOB 执行器，由任务领取本地事件并对已初始化的从库做增量同步。
 
+2026-09-02：为跨电脑快速启动新增了 Docker 基础设施模板（**已实现，待首次完整运行验收**）。`docker/compose.yaml` 声明独立的 MySQL、Redis 与 XXL-JOB Admin；`docker/mysql/init/01-create-databases.sql` 首次创建主库、从库和调度库；`scripts/bootstrap-local-infra.sh` 先等待 MySQL 就绪，再仅在 `xxl_job` 无表时从与 Admin 3.3.2 发布时间匹配的 XXL-JOB 官方固定提交导入调度表，随后启动 Admin。`README.md` 固化了一条首次启动命令、服务地址及日常查看/停止命令。当前机器因既有 Homebrew MySQL 和 Redis 占用同一端口，尚未用该 Docker 路径实际启动；待在无端口冲突的新环境或停用旧服务后验收“脚本重复运行 + 应用 Flyway 建表 + Admin 可登录”。
+
 1. 设计任务表和状态机，明确待处理、处理中、成功、失败及重试次数。
 2. 接入XXL-JOB执行器，Job入口只负责参数解析和调用Service。
 3. 验证人工触发、Cron触发、失败上报和执行日志。

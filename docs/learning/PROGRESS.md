@@ -323,6 +323,8 @@ Spring代理调用边界已学习：学员已理解代理对象包裹Spring Bean
 
 2026-09-02：XXL-JOB 执行器注册已验收。已引入与本机 Admin 对齐的 `xxl-job-core:3.4.0`，新增 `XxlJobConfig` 注册 `XxlJobSpringExecutor`，配置执行器名称 `spring-test-web-executor`、回调地址 `10.39.3.71:9999`、本地日志目录和 30 天保留期。`./mvnw -q -DskipTests compile` 已通过；应用启动后 `http://127.0.0.1:8080/` 返回 200，日志出现 `xxl-job remoting server start success` 且端口为 9999。Admin 中已人工创建同 AppName 的自动注册分组，名称为“Spring Test Web 执行器”；数据库 `xxl_job_group` 的运行证据显示该分组在线地址为 `http://10.39.3.71:9999/`，更新时间为 `2026-09-02 15:02:38`。未创建 Job Handler，未触及增量同步。生产级闭环未完成：当前 access token 为空，仅适用于本地学习环境。
 
+2026-09-02：分类变更探针 Job Handler 已实现，待人工触发验收。新增 `category/job/CategoryChangeEventJob`，以 `@XxlJob("categoryChangeEventProbe")` 暴露最小 Handler；方法读取 `XxlJobHelper.getJobParam()` 并通过 `XxlJobHelper.log(...)` 输出执行参数。`./mvnw -q -DskipTests compile` 通过；应用启动日志已出现 `xxl-job register jobhandler success, name:categoryChangeEventProbe`，随后 9999 端口启动成功。该 Handler 当前不调用 `CategoryChangeEventService`，确保本课仅验证 Admin 到业务 JVM 的远程调度入口。缺失证据：尚未在 Admin 对该 Handler 执行一次并确认调度日志中的参数输出，故状态为**已实现，未验收**。下一步：创建/保存 BEAN 任务后以参数 `lesson-01` 执行一次，核对执行成功与 Handler 日志，再进入事件领取到从库同步。
+
 1. 设计任务表和状态机，明确待处理、处理中、成功、失败及重试次数。
 2. 接入XXL-JOB执行器，Job入口只负责参数解析和调用Service。
 3. 验证人工触发、Cron触发、失败上报和执行日志。

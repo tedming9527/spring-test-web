@@ -70,3 +70,17 @@ server:
 jwt:
   secret: ${JWT_SECRET:default-secret-change-me-in-prod-32x}
   expiration-ms: ${JWT_EXPIRATION_MS:3600000}
+
+
+xxl:
+  job:
+    admin:
+      addresses: http://127.0.0.1:8081/xxl-job-admin
+    access-token: ""
+    executor:
+      appname: spring-test-web-executor
+      address: ""
+      ip: ${XXL_JOB_EXECUTOR_IP:10.39.3.71}
+      port: 9999
+      log-path: ./data/applogs/xxl-job/jobhandler
+      log-retention-days: 30

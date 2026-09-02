@@ -31,7 +31,7 @@ services:
       retries: 30
 
   xxl-job-admin:
-    image: xuxueli/xxl-job-admin:3.3.2
+    image: xuxueli/xxl-job-admin:3.4.0
     container_name: spring-test-web-xxl-job-admin
     environment:
       PARAMS: >-

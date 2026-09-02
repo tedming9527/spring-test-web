@@ -16,7 +16,7 @@ if [[ "$table_count" == "0" ]]; then
   schema_file="$(mktemp)"
   trap 'rm -f "$schema_file"' EXIT
   curl --fail --location --silent --show-error \
-    https://raw.githubusercontent.com/xuxueli/xxl-job/5af44150503024e86409fbb30b103faa46d4af10/doc/db/tables_xxl_job.sql \
+    https://raw.githubusercontent.com/xuxueli/xxl-job/v3.4.0/doc/db/tables_xxl_job.sql \
     --output "$schema_file"
   docker compose -f "$compose_file" exec -T mysql mysql -uroot xxl_job < "$schema_file"
 fi

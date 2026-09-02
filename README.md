@@ -19,7 +19,7 @@ chmod +x scripts/bootstrap-local-infra.sh
 | --- | --- | --- |
 | MySQL | `127.0.0.1:3306` | 主库 `springtestweb`、从库 `springtestweb_replica`、调度库 `xxl_job` |
 | Redis | `127.0.0.1:6379` | 分类缓存与分布式锁 |
-| XXL-JOB Admin | http://127.0.0.1:8081 | 调度中心；默认账号 `admin` / `123456` |
+| XXL-JOB Admin | http://127.0.0.1:8081/xxl-job-admin/ | 调度中心；默认账号 `admin` / `123456` |
 
 主库和从库的业务表不是由 Docker SQL 直接创建，而是由应用启动时的两套 Flyway 迁移创建；这样数据库结构始终随应用版本演进。
 

@@ -311,7 +311,11 @@ Spring代理调用边界已学习：学员已理解代理对象包裹Spring Bean
 
 - 2026-09-01：Service 级"扫描+批量原子领取"切片已验收。`CategoryChangeEventService.claimPendingEvents(batchSize, leaseSeconds, updater)`：`selectClaimableEvents`（XML，到期 PENDING，`ORDER BY id ASC LIMIT`）→ 每条独立生成 UUID token → 逐条 `claimPendingEvent` → 仅影响行数=1 的进入返回列表并回写 token；方法不加事务（claim 逐条独立、行锁/连接逐条释放）。`CategoryChangeEventServiceTest` 两线程门闩并发验收：合计恰好领取 2 条到期事件且集合恰为该 2 条（规模+集合双重断言，等价于"不漏+不重"）、未到期事件不被领取、DB 断言 PROCESSING/token 与返回值一致/租约在未来。测试实现共享库隔离三件套：快照差集（`excludeIds`）、动态 batchSize、finally 中删除自带数据并用 `LambdaUpdateWrapper` 显式 `set(..., null)` 还原被顺手领取的存量（`updateById` 忽略 null 字段，不能用于置空）。`./mvnw -Dtest=CategoryChangeEventServiceTest,CategoryChangeEventMapperTest,CategoryTransactionalServiceTest test` 输出 4 项测试全部通过，`BUILD SUCCESS`。教学观察：学员先后经历"指定赢家断言"失败（并发胜负不确定，必须断言整体一致性）与"`break` 误替 `continue` 导致还原失效"（库内留下 PROCESSING 残留实证），两个坑均已通过真实红灯纠正。
 
-下一步：接入 XXL-JOB 执行器（先本机部署 xxl-job-admin 调度中心，含独立数据库），Job 入口只负责参数解析和调用 `CategoryChangeEventService.claimPendingEvents`，验证人工触发、Cron 触发和执行日志。
+2026-09-02：真实从库结构与独立 Flyway 已验收。已在同一 MySQL 实例创建独立 schema `springtestweb_replica`；其 `goods_category` 由主表结构克隆，字段级双向比对均为 25 列且无差异，主库 40 条、从库初始 0 条。`ReplicaDataSourceConfig` 为从库注册独立 `DataSource` 和 `replicaFlyway`，迁移位于 `db/replica/migration`；首次运行将现有结构基线登记为 `20260901`，并应用/登记 `V20260902__create_goods_category.sql`。`ReplicaFlywayIntegrationTest` 使用真实 MySQL 断言从库 Flyway 当前版本 `20260902` 且从库 `goods_category` 存在；`./mvnw -Dtest=ReplicaFlywayIntegrationTest test` 输出 1 项测试通过、`BUILD SUCCESS`。本项由完整示例完成，已验收“多数据源 Flyway 分库管理”，尚未开始数据全量同步。
+
+2026-09-02：从库分类全量初始化已验收。`ReplicaCategoryBootstrapService` 从主库 `CategoryMapper` 读取 40 条分类，使用从库限定 `JdbcTemplate` 显式保留主库 ID 并批量 `INSERT IGNORE`；写入后校验从库行数与主库一致。`ReplicaBootstrapRunner` 仅在 `replica-bootstrap` profile 启动，避免普通应用启动反复执行全量复制。`ReplicaCategoryBootstrapServiceTest` 对真实 MySQL 连续执行两次初始化，断言主从行数、ID、名称和版本一致；`./mvnw -Dtest=ReplicaCategoryBootstrapServiceTest test` 输出 1 项测试通过、`BUILD SUCCESS`。测试已经将 40 条主库分类写入从库；当前为基础全量初始化，尚未处理初始化期间并发写入，必须在增量任务启用前或业务写入暂停窗口执行。
+
+下一步：接入 XXL-JOB 执行器，由任务领取本地事件并对已初始化的从库做增量同步。
 
 1. 设计任务表和状态机，明确待处理、处理中、成功、失败及重试次数。
 2. 接入XXL-JOB执行器，Job入口只负责参数解析和调用Service。

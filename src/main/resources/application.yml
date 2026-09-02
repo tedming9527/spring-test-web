@@ -25,6 +25,13 @@ spring:
     baseline-on-migrate: true
     baseline-version: 20260515
     baseline-description: "Baseline after V20260515 has been applied"
+app:
+  datasource:
+    replica:
+      url: jdbc:mysql://${REPLICA_DB_HOST:127.0.0.1}:3306/springtestweb_replica?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      username: root
+      password:
+      driver-class-name: com.mysql.cj.jdbc.Driver
 mybatis-plus:
   mapper-locations: classpath*:org/example/**/mapper/*Mapper.xml
   type-aliases-package: org.example.springtestweb.**.vo, org.example.springtestweb.**.entity,  org.example.springtestweb.**.model

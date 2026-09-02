@@ -317,7 +317,9 @@ Spring代理调用边界已学习：学员已理解代理对象包裹Spring Bean
 
 下一步：接入 XXL-JOB 执行器，由任务领取本地事件并对已初始化的从库做增量同步。
 
-2026-09-02：为跨电脑快速启动新增了 Docker 基础设施模板（**基础设施已验收**）。`docker/compose.yaml` 声明独立的 MySQL、Redis 与 XXL-JOB Admin；`docker/mysql/init/01-create-databases.sql` 首次创建主库、从库和调度库；`scripts/bootstrap-local-infra.sh` 先等待 MySQL 就绪，再仅在 `xxl_job` 无表时导入官方 v3.4.0 调度表，随后启动 Admin。`README.md` 固化了一条首次启动命令、服务地址及日常查看/停止命令。本机已重建独立 `xxl_job`（8 张调度表、4 条官方示例任务）；Docker 的失效 USTC 镜像站已移除，但官方 Docker Hub 当时持续 TLS 超时，因此基于已下载的官方 v3.4.0 源码和本机 Java 基础镜像构建了本地镜像 `spring-test-web-xxl-job-admin:3.4.0`。运行证据：容器 `spring-test-web-xxl-job-admin` 显示 `Up` 且映射 `127.0.0.1:8081->8080`，容器日志出现 `xxl-job admin start success`，`http://127.0.0.1:8081/xxl-job-admin/` 返回 200 和登录页。当前尚未接入业务执行器，下一步验收为“执行器注册 → 人工/Cron 触发”。
+2026-09-02：为跨电脑快速启动新增了 Docker 基础设施模板（**基础设施已验收**）。`docker/compose.yaml` 声明独立的 MySQL、Redis 与 XXL-JOB Admin；`docker/mysql/init/01-create-databases.sql` 首次创建主库、从库和调度库；`scripts/bootstrap-local-infra.sh` 先等待 MySQL 就绪，再仅在 `xxl_job` 无表时导入官方 v3.4.0 调度表，随后启动 Admin。`README.md` 固化了一条首次启动命令、服务地址及日常查看/停止命令。本机已重建独立 `xxl_job`（8 张调度表、4 条官方示例任务）；Docker 的失效 USTC 镜像站已移除，但官方 Docker Hub 当时持续 TLS 超时，因此基于已下载的官方 v3.4.0 源码和本机 Java 基础镜像构建了本地镜像 `spring-test-web-xxl-job-admin:3.4.0`。运行证据：容器 `spring-test-web-xxl-job-admin` 显示 `Up` 且映射 `0.0.0.0:8081->8080`，容器日志出现 `xxl-job admin start success`，`http://127.0.0.1:8081/xxl-job-admin/` 与当前局域网 IP 均返回 200 和登录页。当前尚未接入业务执行器，下一步验收为“执行器注册 → 人工/Cron 触发”。
+
+2026-09-02：已学习执行器注册的最小模型（**已学习，未实现**）。学员能够区分执行器名称（业务项目在调度中心的“牌号”）与 `IP:port`（调度中心回调业务项目的实际地址），并能从 Docker 容器视角判断 `127.0.0.1` 指向容器自身、不能作为访问宿主机业务项目的注册地址。尚未向 `pom.xml` 引入 `xxl-job-core`、尚未创建执行器配置或 Job Handler；下一会话从这一个最小实现开始，不提前实现分类同步。
 
 1. 设计任务表和状态机，明确待处理、处理中、成功、失败及重试次数。
 2. 接入XXL-JOB执行器，Job入口只负责参数解析和调用Service。

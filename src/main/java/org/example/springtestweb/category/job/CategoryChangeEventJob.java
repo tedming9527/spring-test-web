@@ -17,11 +17,14 @@ public class CategoryChangeEventJob {
     Integer batchSize = null;
     try {
       batchSize = Integer.valueOf(parameter.trim());
-      if (batchSize == null || batchSize < 1){
+      if (batchSize < 1){
         throw new IllegalStateException("categoryChangeEventProbe 并发梳理参数非法");
       }
     } catch (Exception e) {
-      batchSize = 2;
+      XxlJobHelper.handleFail(
+        "任务参数 batchSize 必须是正整数；空参数默认 2，当前值：" + parameter
+      );
+      return;
     }
     int claimedCount = categoryChangeEventService.claimPendingEvents(batchSize, 60, "xxl-job").size();
 

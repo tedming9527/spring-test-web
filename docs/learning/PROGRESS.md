@@ -325,6 +325,8 @@ Spring代理调用边界已学习：学员已理解代理对象包裹Spring Bean
 
 2026-09-02：分类变更探针 Job Handler 已实现，待人工触发验收。新增 `category/job/CategoryChangeEventJob`，以 `@XxlJob("categoryChangeEventProbe")` 暴露最小 Handler；方法读取 `XxlJobHelper.getJobParam()` 并通过 `XxlJobHelper.log(...)` 输出执行参数。`./mvnw -q -DskipTests compile` 通过；应用启动日志已出现 `xxl-job register jobhandler success, name:categoryChangeEventProbe`，随后 9999 端口启动成功。该 Handler 当前不调用 `CategoryChangeEventService`，确保本课仅验证 Admin 到业务 JVM 的远程调度入口。缺失证据：尚未在 Admin 对该 Handler 执行一次并确认调度日志中的参数输出，故状态为**已实现，未验收**。下一步：创建/保存 BEAN 任务后以参数 `lesson-01` 执行一次，核对执行成功与 Handler 日志，再进入事件领取到从库同步。
 
+2026-09-03：分类变更探针 Job Handler 已验收。执行器自动注册记录为 `http://10.39.3.71:9999/`；Admin 任务“分类变更探针”在 15:18:30 人工触发（参数为 `hello world`）的 `xxl_job_log` 记录显示 `trigger_code=200`、`handle_code=200`、执行器地址为该 URL、Handler 为 `categoryChangeEventProbe`。执行器本地文件 `data/applogs/xxl-job/jobhandler/2026-09-03/267.log` 进一步记录 `Param:hello world` 与 `category change event probe paramter=hello world`，证明 Admin 参数已经进入 Java Handler。其后 15:20 的 Cron 触发也得到双 200。本课已验收“执行器自动注册 → Admin 人工/Cron 触发 → Handler 文件日志”的最小闭环；当前仍未触及事件领取或从库增量同步。下一步：让 Job 入口只负责解析批量参数并调用既有 `CategoryChangeEventService.claimPendingEvents()`，先验收一次任务领取，不写从库。
+
 1. 设计任务表和状态机，明确待处理、处理中、成功、失败及重试次数。
 2. 接入XXL-JOB执行器，Job入口只负责参数解析和调用Service。
 3. 验证人工触发、Cron触发、失败上报和执行日志。

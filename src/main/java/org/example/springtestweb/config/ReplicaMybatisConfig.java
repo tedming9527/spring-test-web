@@ -15,7 +15,7 @@ import javax.sql.DataSource;
   sqlSessionFactoryRef = "replicaSqlSessionFactory"
 )
 public class ReplicaMybatisConfig {
-  @Bean(name = "replicaSqlSessionFactory")
+  @Bean(name = "replicaSqlSessionFactory", defaultCandidate = false)
   public SqlSessionFactory replicaSqlSessionFactory(
     @Qualifier("replica") DataSource replicaDataSource
   ) throws Exception {

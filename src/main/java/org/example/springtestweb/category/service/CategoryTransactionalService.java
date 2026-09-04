@@ -38,20 +38,20 @@ public class CategoryTransactionalService {
         }
       }
     });
-    Long expectedVersion = category.getCategoryVersion();
-    if (expectedVersion == null) {
+    Long expectedCurrentVersion = category.getCategoryVersion();
+    if (expectedCurrentVersion == null) {
       throw new IllegalStateException("分类版本不能为空");
     }
 
     int affectRows = categoryMapper.updateNameIfVersionMatches(
       category.getId(),
       category.getName(),
-      expectedVersion
+      expectedCurrentVersion
     );
     if (affectRows != 1) {
       return false;
     }
-    category.setCategoryVersion(expectedVersion + 1);
+    category.setCategoryVersion(expectedCurrentVersion + 1);
     CategoryChangeEvent event = new CategoryChangeEvent();
     event.setCategoryId(category.getId());
     event.setCategoryVersion(category.getCategoryVersion());

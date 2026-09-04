@@ -15,11 +15,11 @@ public interface CategoryMapper extends BaseMapper<Category> {
       SET name = #{name},
           category_version = category_version + 1
       WHERE id = #{id}
-          AND category_version = #{expectedVersion}
+          AND category_version = #{expectedCurrentVersion}
   """)
   int updateNameIfVersionMatches(
       @Param("id") Long id,
       @Param("name") String name,
-      @Param("expectedVersion") Long expectedVersion
+      @Param("expectedCurrentVersion") Long expectedCurrentVersion
   );
 }

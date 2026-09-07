@@ -1,21 +1,4 @@
 services:
-  mysql:
-    image: mysql:8.4
-    container_name: spring-test-web-mysql
-    environment:
-      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
-    ports:
-      - "127.0.0.1:3306:3306"
-    volumes:
-      - mysql-data:/var/lib/mysql
-      - ./mysql/init:/docker-entrypoint-initdb.d:ro
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
-    healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot --silent"]
-      interval: 5s
-      timeout: 5s
-      retries: 30
-
   redis:
     image: redis:7-alpine
     container_name: spring-test-web-redis
@@ -36,16 +19,12 @@ services:
     environment:
       PARAMS: >-
         --server.port=8080
-        --spring.datasource.url=jdbc:mysql://mysql:3306/xxl_job?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+        --spring.datasource.url=jdbc:mysql://host.docker.internal:3306/xxl_job?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
         --spring.datasource.username=root
         --spring.datasource.password=
         --xxl.job.accessToken=
     ports:
       - "8081:8080"
-    depends_on:
-      mysql:
-        condition: service_healthy
 
 volumes:
-  mysql-data:
   redis-data:

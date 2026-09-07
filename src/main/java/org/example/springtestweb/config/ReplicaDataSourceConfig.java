@@ -1,7 +1,6 @@
 package org.example.springtestweb.config;
 
 import com.zaxxer.hikari.HikariDataSource;
-import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
@@ -38,14 +37,4 @@ public class ReplicaDataSourceConfig {
     return new JdbcTemplate(replicaDataSource);
   }
 
-  @Bean(name = "replicaFlyway", initMethod = "migrate")
-  public Flyway replicaFlyway(@Qualifier("replica") DataSource replicaDataSource) {
-    return Flyway.configure()
-        .dataSource(replicaDataSource)
-        .locations("classpath:db/replica/migration")
-        .baselineOnMigrate(true)
-        .baselineVersion("20260901")
-        .baselineDescription("Replica schema before Flyway management")
-        .load();
-  }
 }

@@ -1,7 +1,9 @@
 package org.example.springtestweb.category.replica.mapper;
 
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
+import org.example.springtestweb.category.entity.Category;
 
 public interface ReplicaCategoryMapper {
   @Update("""
@@ -16,4 +18,10 @@ public interface ReplicaCategoryMapper {
     @Param("name") String name,
     @Param("eventVersion") Long eventVersion
   );
+  @Select("""
+      SELECT id, category_version
+      FROM goods_category
+      WHERE id =#{id}
+  """)
+  Category findById(@Param("id") Long id);
 }

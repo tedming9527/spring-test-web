@@ -2,6 +2,7 @@ package org.example.springtestweb.category.job;
 
 import com.xxl.job.core.context.XxlJobHelper;
 import com.xxl.job.core.handler.annotation.XxlJob;
+import org.example.springtestweb.category.entity.Category;
 import org.example.springtestweb.category.entity.CategoryChangeEvent;
 import org.example.springtestweb.category.mapper.CategoryChangeEventMapper;
 import org.example.springtestweb.category.mapper.CategoryMapper;
@@ -52,18 +53,19 @@ public class CategoryChangeEventJob {
       } catch (Exception e) {
         throw new IllegalStateException("分类变更事件 payload 非法, eventId=" + event.getId());
       }
-      int effectRows = replicaCategoryMapper.syncReplicaNameIfVersionMatches(event.getCategoryId(), name, event.getCategoryVersion());
-      if (effectRows > 0){
+      Category replicaCategory = replicaCategoryMapper.findById(event.getCategoryId());
+      if (replicaCategory == null) {
+        scheduleRetry(event);
+      } else if (replicaCategory.getCategoryVersion() >= event.getCategoryVersion()) {
         event.setStatus("SUCCESS");
       } else {
-        if (event.getRetryCount() > 3){
-          event.setStatus("FAILED");
+        int effectRows = replicaCategoryMapper.syncReplicaNameIfVersionMatches(
+          event.getCategoryId(), name, event.getCategoryVersion()
+        );
+        if (effectRows == 1) {
+          event.setStatus("SUCCESS");
         } else {
-          int nextRetryCount = event.getRetryCount() + 1;
-          event.setRetryCount(nextRetryCount);
-
-          long delaySeconds = nextRetryCount * 30L;
-          event.setNextRetryAt(LocalDateTime.now().plusSeconds(delaySeconds));
+          scheduleRetry(event);
         }
       }
       categoryChangeEventMapper.updateById(event);
@@ -72,5 +74,15 @@ public class CategoryChangeEventJob {
     int claimedCount = events.size();
 
     XxlJobHelper.log("category change event probe parameter={}, claimedCount={}", parameter, claimedCount);
+  }
+
+  private void scheduleRetry(CategoryChangeEvent event) {
+    if (event.getRetryCount() > 3) {
+      event.setStatus("FAILED");
+      return;
+    }
+    int nextRetryCount = event.getRetryCount() + 1;
+    event.setRetryCount(nextRetryCount);
+    event.setNextRetryAt(LocalDateTime.now().plusSeconds(nextRetryCount * 30L));
   }
 }

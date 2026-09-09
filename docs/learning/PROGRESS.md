@@ -1,6 +1,6 @@
 # Spring Boot 企业后端实战学习进度
 
-更新时间：2026-09-07
+更新时间：2026-09-10
 
 ## 使用规则
 
@@ -330,6 +330,8 @@ Spring代理调用边界已学习：学员已理解代理对象包裹Spring Bean
 2026-09-03：分类变更事件 Job 参数解析与领取已验收。`CategoryChangeEventJob` 将 XXL-JOB 参数解析为批量大小，并调用既有 `CategoryChangeEventService.claimPendingEvents(batchSize, 60, "xxl-job")`；Job 入口未写入从库。运行日志记录 `Param:2`、`parameter=2, claimedCount=2`、`handleCode=200`，证明参数进入 Java Handler、Service 实际领取 2 条且执行成功。此前数据库查询已记录两条教学事件（`id=89`、`id=90`）从 `PENDING` 变为 `PROCESSING`，均有不同的 `processing_token`、60 秒租约及 `updater=xxl-job`。同一时段分类更新接口已在主库写入 `CATEGORY_NAME_CHANGED` 事件；本轮不将从库未更新视为失败，因为领取 Job 的职责止于状态迁移，尚未实现下游同步。证据边界：学员确认以现有日志和数据库状态验收，未额外保存该次日志对应业务事件行的最终查询结果。非法参数失败回传已实现：参数解析失败或非正时调用 `XxlJobHelper.handleFail(...)` 并立即返回，`./mvnw -q -DskipTests compile` 已通过；待学员在 Admin 以 `0` 完成一次运行验收，确认 `handleCode=500`、错误消息可读且无事件被领取。下一步：只实现已领取事件向从库写入的最小同步切片。
 
 2026-09-07：主库 Flyway 漏执行问题已修复并验收。根因是手工声明 `replicaFlyway` 后，Spring Boot 的自动 Flyway 配置退让，启动时只迁移从库而未迁移主库；主库历史停在 `20260812`，`goods_category` 缺少 `category_version`。`ReplicaDataSourceConfig` 现显式注册 `primaryFlyway`，与从库分别执行各自迁移目录。`PrimaryFlywayIntegrationTest` 在真实本机 MySQL 运行时执行主库遗漏的 `20260828`、`20260831`、`20260831.1` 三条迁移，断言当前版本为 `20260831.1` 且 `goods_category.category_version` 存在；`./mvnw -Dtest=PrimaryFlywayIntegrationTest test` 输出 1 项测试通过、`BUILD SUCCESS`。本项状态为**已验收**。
+
+2026-09-10：从库增量同步的重复与乱序事件处理已实现，待运行验收。学员能够判断：从库版本低于事件版本时应更新；版本等于或高于事件版本时，影响行数为 0 仍表示重复或旧事件已经被安全处理，不应重试；从库没有该分类 ID 时才属于应重试的异常。`ReplicaCategoryMapper` 新增按 ID 查询从库分类的 `findById()`；`CategoryChangeEventJob` 依据查询结果区分三条分支：记录不存在时安排重试、从库版本大于等于事件版本时回写 `SUCCESS`、从库版本更低时执行条件更新并按影响行数决定成功或重试。重试逻辑收敛为 `scheduleRetry()`，避免重复代码。`./mvnw -q -DskipTests compile` 与 `git diff --check` 通过。核心判断由学员在提示下完成，分支代码在请求完整示例后共同完成。缺失证据：尚未人工触发重复事件、旧事件及从库缺记录三种场景，未验证事件最终状态、重试次数和从库数据；本项状态为**已实现，未验收**。下一步：由学员在 XXL-JOB Admin 分别触发三类事件，保存 Job 日志及主从库、`category_change_event` 查询结果后再更新为已验收。
 
 1. 设计任务表和状态机，明确待处理、处理中、成功、失败及重试次数。
 2. 接入XXL-JOB执行器，Job入口只负责参数解析和调用Service。

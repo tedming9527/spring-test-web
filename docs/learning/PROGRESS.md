@@ -333,6 +333,8 @@ Spring代理调用边界已学习：学员已理解代理对象包裹Spring Bean
 
 2026-09-10：从库增量同步的重复与乱序事件处理已实现，待运行验收。学员能够判断：从库版本低于事件版本时应更新；版本等于或高于事件版本时，影响行数为 0 仍表示重复或旧事件已经被安全处理，不应重试；从库没有该分类 ID 时才属于应重试的异常。`ReplicaCategoryMapper` 新增按 ID 查询从库分类的 `findById()`；`CategoryChangeEventJob` 依据查询结果区分三条分支：记录不存在时安排重试、从库版本大于等于事件版本时回写 `SUCCESS`、从库版本更低时执行条件更新并按影响行数决定成功或重试。重试逻辑收敛为 `scheduleRetry()`，避免重复代码。`./mvnw -q -DskipTests compile` 与 `git diff --check` 通过。核心判断由学员在提示下完成，分支代码在请求完整示例后共同完成。缺失证据：尚未人工触发重复事件、旧事件及从库缺记录三种场景，未验证事件最终状态、重试次数和从库数据；本项状态为**已实现，未验收**。下一步：由学员在 XXL-JOB Admin 分别触发三类事件，保存 Job 日志及主从库、`category_change_event` 查询结果后再更新为已验收。
 
+2026-09-15：失败重试状态机边界已验收。学员独立判断从库缺少分类时，`scheduleRetry()` 只递增 `retryCount`、设置 `nextRetryAt`，但事件仍为 `PROCESSING`；而领取 SQL 只扫描 `status = 'PENDING'`，所以即使到达重试时间也无法再次领取。为修复该 P0 缺口，新增 `rescheduleForRetry` 专用 Mapper SQL，在同一条 UPDATE 中恢复 `PENDING`、递增 `retry_count`、按 `N × 30` 秒计算下次重试时间，并清空 `processing_token` 与 `processing_lease_until`；Job 在专用 SQL 成功后 `continue`，避免再落入通用 `updateById()`，而重试次数耗尽仍标记 `FAILED` 后走通用更新。运行证据：本机事件 `id=99/category_id=990001` 首次从库缺记录处理后为 `PENDING/retry_count=1`；重启应用加载新 Mapper 后，等待到期并第二次人工触发 XXL-JOB，查询结果为 `PENDING/retry_count=2/next_retry_at=2026-09-15 14:58:01/processing_token=NULL/processing_lease_until=NULL`，且 `update_time=2026-09-15 14:57:01`。这证明事件被再次领取并安全回队。证据边界：本轮只验证了缺从库记录的重试循环，尚未验收重复事件、旧事件和从库更新成功三条分支。下一步：创建可控重复事件，验收从库版本大于等于事件版本时直接标记 `SUCCESS` 且不增加重试次数。
+
 1. 设计任务表和状态机，明确待处理、处理中、成功、失败及重试次数。
 2. 接入XXL-JOB执行器，Job入口只负责参数解析和调用Service。
 3. 验证人工触发、Cron触发、失败上报和执行日志。

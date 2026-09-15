@@ -24,8 +24,6 @@ public class CategoryChangeEventJob {
   @Autowired
   CategoryChangeEventService categoryChangeEventService;
   @Autowired
-  CategoryMapper categoryMapper;
-  @Autowired
   ReplicaCategoryMapper replicaCategoryMapper;
   @Autowired
   ObjectMapper objectMapper;
@@ -55,7 +53,9 @@ public class CategoryChangeEventJob {
       }
       Category replicaCategory = replicaCategoryMapper.findById(event.getCategoryId());
       if (replicaCategory == null) {
-        scheduleRetry(event);
+        if (scheduleRetry(event)) {
+          continue;
+        }
       } else if (replicaCategory.getCategoryVersion() >= event.getCategoryVersion()) {
         event.setStatus("SUCCESS");
       } else {
@@ -65,7 +65,9 @@ public class CategoryChangeEventJob {
         if (effectRows == 1) {
           event.setStatus("SUCCESS");
         } else {
-          scheduleRetry(event);
+          if (scheduleRetry(event)) {
+            continue;
+          }
         }
       }
       categoryChangeEventMapper.updateById(event);
@@ -76,13 +78,12 @@ public class CategoryChangeEventJob {
     XxlJobHelper.log("category change event probe parameter={}, claimedCount={}", parameter, claimedCount);
   }
 
-  private void scheduleRetry(CategoryChangeEvent event) {
+  private boolean scheduleRetry(CategoryChangeEvent event) {
     if (event.getRetryCount() > 3) {
       event.setStatus("FAILED");
-      return;
+      return false;
     }
-    int nextRetryCount = event.getRetryCount() + 1;
-    event.setRetryCount(nextRetryCount);
-    event.setNextRetryAt(LocalDateTime.now().plusSeconds(nextRetryCount * 30L));
+    categoryChangeEventMapper.rescheduleForRetry(event.getId(), "system");
+    return true;
   }
 }

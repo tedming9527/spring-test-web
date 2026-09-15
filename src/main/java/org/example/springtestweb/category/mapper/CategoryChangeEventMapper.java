@@ -14,4 +14,9 @@ public interface CategoryChangeEventMapper extends BaseMapper<CategoryChangeEven
     @Param("updater") String updater
   );
   List<CategoryChangeEvent> selectClaimableEvents(int batchSize);
+
+  int rescheduleForRetry(
+    @Param("id") Long id,
+    @Param("updater") String updater
+  );
 }

@@ -24,4 +24,15 @@
         ORDER BY id ASC
         LIMIT #{batchSize}
     </select>
+    <update id="rescheduleForRetry">
+        UPDATE category_change_event
+        SET status = 'PENDING',
+            processing_token = NULL,
+            processing_lease_until = NULL,
+            next_retry_at = TIMESTAMPADD(SECOND, (retry_count + 1) * 30, CURRENT_TIMESTAMP),
+            retry_count = retry_count + 1,
+            updater = #{updater},
+            update_time = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
 </mapper>

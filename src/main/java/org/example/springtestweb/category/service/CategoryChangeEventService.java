@@ -14,6 +14,7 @@ public class CategoryChangeEventService {
   @Autowired
   private CategoryChangeEventMapper categoryChangeEventMapper;
   public List<CategoryChangeEvent> claimPendingEvents(int batchSize, int leaseSeconds, String updater) {
+    categoryChangeEventMapper.recoverExpiredProcessingEvents(updater);
     List<CategoryChangeEvent> categoryChangeEvents = categoryChangeEventMapper.selectClaimableEvents(batchSize);
     List<CategoryChangeEvent> winners = new ArrayList<>();
     for(CategoryChangeEvent e: categoryChangeEvents){

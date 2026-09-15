@@ -19,4 +19,7 @@ public interface CategoryChangeEventMapper extends BaseMapper<CategoryChangeEven
     @Param("id") Long id,
     @Param("updater") String updater
   );
+  int recoverExpiredProcessingEvents(
+    @Param("updater") String updater
+  );
 }

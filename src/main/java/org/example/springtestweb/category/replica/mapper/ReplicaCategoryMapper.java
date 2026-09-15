@@ -19,7 +19,7 @@ public interface ReplicaCategoryMapper {
     @Param("eventVersion") Long eventVersion
   );
   @Select("""
-      SELECT id, category_version
+      SELECT id, category_version AS categoryVersion
       FROM goods_category
       WHERE id =#{id}
   """)

@@ -35,4 +35,25 @@
             update_time = CURRENT_TIMESTAMP
         WHERE id = #{id}
     </update>
+    <update id="recoverExpiredProcessingEvents">
+        UPDATE category_change_event
+        SET status = CASE
+            WHEN retry_count > 3 THEN 'FAILED' ELSE 'PENDING'
+        END,
+        processing_token = NULL,
+        processing_lease_until = NULL,
+        next_retry_at = CASE
+            WHEN retry_count > 3 THEN NULL
+                ELSE TIMESTAMPADD(SECOND, (retry_count + 1) * 30, CURRENT_TIMESTAMP)
+        END,
+        retry_count = CASE
+            WHEN retry_count > 3 THEN retry_count
+                ELSE retry_count + 1
+        END,
+        updater = #{updater},
+        update_time = CURRENT_TIMESTAMP
+        WHERE status = 'PROCESSING' AND (processing_lease_until &lt;= CURRENT_TIMESTAMP)
+        ORDER BY processing_lease_until ASC
+        limit 10
+    </update>
 </mapper>

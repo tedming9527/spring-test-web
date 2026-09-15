@@ -335,6 +335,14 @@ Spring代理调用边界已学习：学员已理解代理对象包裹Spring Bean
 
 2026-09-15：失败重试状态机边界已验收。学员独立判断从库缺少分类时，`scheduleRetry()` 只递增 `retryCount`、设置 `nextRetryAt`，但事件仍为 `PROCESSING`；而领取 SQL 只扫描 `status = 'PENDING'`，所以即使到达重试时间也无法再次领取。为修复该 P0 缺口，新增 `rescheduleForRetry` 专用 Mapper SQL，在同一条 UPDATE 中恢复 `PENDING`、递增 `retry_count`、按 `N × 30` 秒计算下次重试时间，并清空 `processing_token` 与 `processing_lease_until`；Job 在专用 SQL 成功后 `continue`，避免再落入通用 `updateById()`，而重试次数耗尽仍标记 `FAILED` 后走通用更新。运行证据：本机事件 `id=99/category_id=990001` 首次从库缺记录处理后为 `PENDING/retry_count=1`；重启应用加载新 Mapper 后，等待到期并第二次人工触发 XXL-JOB，查询结果为 `PENDING/retry_count=2/next_retry_at=2026-09-15 14:58:01/processing_token=NULL/processing_lease_until=NULL`，且 `update_time=2026-09-15 14:57:01`。这证明事件被再次领取并安全回队。证据边界：本轮只验证了缺从库记录的重试循环，尚未验收重复事件、旧事件和从库更新成功三条分支。下一步：创建可控重复事件，验收从库版本大于等于事件版本时直接标记 `SUCCESS` 且不增加重试次数。
 
+2026-09-15：重复事件版本幂等已验收。首次实验发现独立从库 `SqlSessionFactory` 未继承主库的下划线转驼峰配置，`ReplicaCategoryMapper.findById()` 查询出的 `category_version` 未映射到 `Category.categoryVersion`，在 Job 的版本比较处触发 NPE 并使教学事件 `id=106` 停留 `PROCESSING`。最小修复为查询列显式别名 `category_version AS categoryVersion`，避免扩大双数据源配置边界。重启应用后，学员将该测试事件精确恢复为 `PENDING` 并人工触发 XXL-JOB；最终事件为 `SUCCESS/retry_count=0`，从库分类 `id=1100` 保持 `食品生鲜/category_version=0`，证明从库版本等于事件版本时不会覆盖数据、不会安排重试。下一步：验证从库版本低于事件版本时的条件更新成功路径。
+
+2026-09-15：从库版本较低的条件更新已验收。学员在主库创建版本为 `1` 的教学事件，人工触发 XXL-JOB 后，主库事件 `id=107` 为 `SUCCESS/retry_count=0`，从库分类 `id=1100` 变为 `fresh-lab-v1/category_version=1`。随后已删除带 `lesson-duplicate`、`lesson-fresh` 标识的教学事件，并将从库分类 `1100` 精确恢复为 `食品生鲜/category_version=0`。至此，从库缺记录的重试回队、重复/旧事件的幂等成功、从库版本较低时的条件更新成功三条分支均已取得真实运行证据；当前增量同步基础切片已验收。下一步：实现并验收 `PROCESSING` 租约到期后的恢复领取，避免任务进程中断时事件永久卡住。
+
+2026-09-15：`PROCESSING` 租约到期恢复已验收。新增 `recoverExpiredProcessingEvents` 批量 Mapper：按过期租约排序、每轮最多处理 10 条，在同一条 SQL 中清空处理令牌和租约、递增重试次数、按 `N × 30` 秒设置 `next_retry_at`，并在超过现有重试阈值时转为 `FAILED`。`CategoryChangeEventService.claimPendingEvents()` 在扫描可领取事件前调用恢复操作，保持 Job 只做参数解析与 Service 调用。运行证据：主库教学事件 `id=112` 初始为 `PROCESSING/retry_count=0/processing_lease_until=2026-09-15 16:40:50`；数据库当前时间已到 `16:43:24` 时仍未恢复，确认应用重启加载新代码后再次触发 Job，最终为 `PENDING/retry_count=1/next_retry_at=2026-09-15 16:46:25/processing_token=NULL/processing_lease_until=NULL/updater=xxl-job`。测试事件已精确删除。下一步：验证 `retry_count > 3` 的过期处理事件被标记为 `FAILED` 而不再回队。
+
+2026-09-15：过期处理事件的重试上限已验收。主库教学事件 `id=113` 以 `PROCESSING/retry_count=4` 和已过期租约创建；人工触发 XXL-JOB 后，查询结果为 `FAILED/retry_count=4/next_retry_at=NULL/processing_token=NULL/processing_lease_until=NULL/updater=xxl-job`。这证明超过现有阈值的事件不再回队，自动重试停止且失败状态可见；测试事件已精确删除。下一步：处理 payload 解析失败等业务异常，使其立即记录失败摘要并进入重试，而不是仅依赖租约到期恢复。
+
 1. 设计任务表和状态机，明确待处理、处理中、成功、失败及重试次数。
 2. 接入XXL-JOB执行器，Job入口只负责参数解析和调用Service。
 3. 验证人工触发、Cron触发、失败上报和执行日志。

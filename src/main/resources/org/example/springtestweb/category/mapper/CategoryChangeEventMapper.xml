@@ -32,7 +32,20 @@
             next_retry_at = TIMESTAMPADD(SECOND, (retry_count + 1) * 30, CURRENT_TIMESTAMP),
             retry_count = retry_count + 1,
             updater = #{updater},
-            update_time = CURRENT_TIMESTAMP
+            update_time = CURRENT_TIMESTAMP,
+            last_error = #{lastError}
+        WHERE id = #{id}
+    </update>
+    <update id="markFailed">
+        UPDATE category_change_event
+        SET status = 'FAILED',
+        processing_token = NULL,
+        processing_lease_until = NULL,
+        next_retry_at = NULL,
+        retry_count = retry_count + 1,
+        updater = #{updater},
+        update_time = CURRENT_TIMESTAMP,
+        last_error = #{lastError}
         WHERE id = #{id}
     </update>
     <update id="recoverExpiredProcessingEvents">

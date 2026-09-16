@@ -5,7 +5,6 @@ import com.xxl.job.core.handler.annotation.XxlJob;
 import org.example.springtestweb.category.entity.Category;
 import org.example.springtestweb.category.entity.CategoryChangeEvent;
 import org.example.springtestweb.category.mapper.CategoryChangeEventMapper;
-import org.example.springtestweb.category.mapper.CategoryMapper;
 import org.example.springtestweb.category.replica.mapper.ReplicaCategoryMapper;
 import org.example.springtestweb.category.service.CategoryChangeEventService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,9 +12,7 @@ import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-import java.time.LocalDateTime;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 @Component
 public class CategoryChangeEventJob {
@@ -49,13 +46,16 @@ public class CategoryChangeEventJob {
         JsonNode jsonNode = objectMapper.readTree(event.getPayload());
         name = jsonNode.get("name").asString();
       } catch (Exception e) {
-        throw new IllegalStateException("分类变更事件 payload 非法, eventId=" + event.getId());
+        String error = "事件payload非法, eventId=" + event.getId();
+        XxlJobHelper.log(error);
+        event.setLastError(error);
+        scheduleRetry(event);
+        continue;
       }
       Category replicaCategory = replicaCategoryMapper.findById(event.getCategoryId());
       if (replicaCategory == null) {
-        if (scheduleRetry(event)) {
-          continue;
-        }
+        scheduleRetry(event);
+        continue;
       } else if (replicaCategory.getCategoryVersion() >= event.getCategoryVersion()) {
         event.setStatus("SUCCESS");
       } else {
@@ -65,9 +65,8 @@ public class CategoryChangeEventJob {
         if (effectRows == 1) {
           event.setStatus("SUCCESS");
         } else {
-          if (scheduleRetry(event)) {
-            continue;
-          }
+          scheduleRetry(event);
+          continue;
         }
       }
       categoryChangeEventMapper.updateById(event);
@@ -80,10 +79,10 @@ public class CategoryChangeEventJob {
 
   private boolean scheduleRetry(CategoryChangeEvent event) {
     if (event.getRetryCount() > 3) {
-      event.setStatus("FAILED");
+      categoryChangeEventMapper.markFailed(event.getId(), "system", event.getLastError());
       return false;
     }
-    categoryChangeEventMapper.rescheduleForRetry(event.getId(), "system");
+    categoryChangeEventMapper.rescheduleForRetry(event.getId(), "system", event.getLastError());
     return true;
   }
 }

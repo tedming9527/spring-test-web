@@ -17,7 +17,13 @@ public interface CategoryChangeEventMapper extends BaseMapper<CategoryChangeEven
 
   int rescheduleForRetry(
     @Param("id") Long id,
-    @Param("updater") String updater
+    @Param("updater") String updater,
+    @Param("lastError")  String lastError
+  );
+  int markFailed(
+    @Param("id") Long id,
+    @Param("updater") String updater,
+    @Param("lastError")  String lastError
   );
   int recoverExpiredProcessingEvents(
     @Param("updater") String updater

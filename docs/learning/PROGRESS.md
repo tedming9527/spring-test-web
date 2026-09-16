@@ -1,6 +1,6 @@
 # Spring Boot 企业后端实战学习进度
 
-更新时间：2026-09-10
+更新时间：2026-09-17
 
 ## 使用规则
 
@@ -346,6 +346,16 @@ Spring代理调用边界已学习：学员已理解代理对象包裹Spring Bean
 2026-09-16：payload 解析失败的批处理隔离已验收。`CategoryChangeEventJob` 在单条事件 payload 解析失败时记录 Job 日志与 `lastError`，由专用 Mapper SQL 将未超上限的事件恢复为 `PENDING`、递增 `retryCount`、设置下一次重试时间并清空领取令牌/租约；达到上限时由专用 SQL 标记 `FAILED`。三条失败路径均在状态转换后 `continue`，不再用内存旧对象 `updateById()` 覆盖数据库状态。`./mvnw -q -DskipTests compile` 通过。人工 XXL-JOB 批量验收：教学事件 `id=116`（非法 payload）最终为 `PENDING/retry_count=1/last_error=事件payload非法, eventId=116/processing_token=NULL/processing_lease_until=NULL`，事件 `id=117`（合法重复事件）最终为 `SUCCESS/retry_count=0`，证明坏事件不会阻断同批正常事件。学员在提示下完成状态转换与参数传递。发现 P1：成功事件 `id=117` 仍保留领取时的 `processing_token` 与 `processing_lease_until`；不影响状态排除和本课验收，但终态元数据应在下一课用专用成功 SQL 清理。下一步：实现并验收成功事件回写时清除领取元数据。
 
 2026-09-16：成功终态的领取元数据清理已验收。新增 `markSuccess` 专用 Mapper SQL，统一将事件设为 `SUCCESS`，并清空 `processing_token`、`processing_lease_until`、`next_retry_at` 与历史 `last_error`；Job 的版本幂等成功与从库条件更新成功均汇合到该终态转换。`./mvnw -q -DskipTests compile` 通过。人工 XXL-JOB 验收：教学事件 `id=118` 最终为 `SUCCESS/retry_count=0/last_error=NULL/next_retry_at=NULL/processing_token=NULL/processing_lease_until=NULL/updater=system`。此前 P1 已消除。下一步：为每批 Job 汇总成功、回队重试与最终失败数量，增强业务可观测性，同时保持可恢复的单事件失败不将整次 Job 标为失败。
+
+2026-09-17：学习节奏与范围审计（**进度判断，不是新增验收**）。以最近 30 天（2026-08-17 起）和最近 15 天（2026-09-03 起）的 Git 历史为节奏证据：前者共有 70 个提交，其中实现类 40、文档类 24、配置/杂项 5、其他 1；后者共有 12 个提交，其中实现类 10、文档类 2。9 月 15—16 日集中完成了租约恢复、重试上限、非法 payload 的批处理隔离和成功终态元数据清理。提交数量只能证明仓库活动节奏，不能替代学员独立能力、SQL 正确性或运行验收；已验收状态仍仅以本文件记录的真实 MySQL、XXL-JOB、日志或自动化测试证据为准。
+
+相对“2026 年 9 月底能够独立实现、调试、验收中小型 Spring Boot 功能，并贯通事务、Redis、XXL-JOB、RabbitMQ、Nacos、Sentinel、可观测性”的原始总体目标，当前不是停滞，而是范围尚未完成：事务/Redis 与 XXL-JOB 基础补偿切片已有多项运行证据，但 RabbitMQ、Nacos、Sentinel 尚无本仓库实现或验收记录。基于可见仓库事实的粗略范围判断为：完整原目标仍有约 45%—65% 待完成；该区间不是能力评分，也会随未见学习记录、环境状态和后续验收改变。
+
+本月优先收口调整为：**XXL-JOB 分类变更补偿链路 + 基础可观测性**。RabbitMQ、Nacos、Sentinel 保持后续阶段，不因目标日期临近而伪称已完成或压缩为无证据的“已学习”。该调整保留原始总体目标和阶段 C/D 的内容，只改变本月可交付的优先级。
+
+当前工作区存在未提交的批次结果汇总与 token 所有权保护改动，涉及 `CategoryChangeEventJob`、`CategoryChangeEventMapper` 和对应 XML；另有未跟踪 `.editorconfig`，不属于本课进度修改范围。当前改动尚待完成代码修正、针对性编译/测试与真实运行验收，不能标记为已实现或已验收。尤其要确认：终态/重试 SQL 使用当前 `processing_token` 作为条件；SQL 影响行数为 0 时不会被错误计入成功、回队或最终失败；`ProcessResult` 正确区分 `SUCCESS`、`RETRY_SCHEDULED`、`FAILED` 与未更新状态。
+
+**下一次训练唯一入口**：先修正 token 条件和 `ProcessResult` 结果映射；随后执行相应编译与测试/运行验收，核对批次日志的 success、retry、failed、notUpdated 与实际数据库最终状态一致；仅在该闭环取得证据后，再进入基础可观测性。不得跳过该入口直接开始 RabbitMQ、Nacos 或 Sentinel。
 
 1. 设计任务表和状态机，明确待处理、处理中、成功、失败及重试次数。
 2. 接入XXL-JOB执行器，Job入口只负责参数解析和调用Service。

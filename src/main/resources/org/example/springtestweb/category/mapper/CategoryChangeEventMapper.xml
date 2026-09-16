@@ -48,6 +48,17 @@
         last_error = #{lastError}
         WHERE id = #{id}
     </update>
+    <update id="markSuccess">
+        UPDATE category_change_event
+        SET status = 'SUCCESS',
+        processing_token = NULL,
+        processing_lease_until = NULL,
+        next_retry_at = NULL,
+        updater = #{updater},
+        update_time = CURRENT_TIMESTAMP,
+        last_error = NULL
+        WHERE id = #{id}
+    </update>
     <update id="recoverExpiredProcessingEvents">
         UPDATE category_change_event
         SET status = CASE

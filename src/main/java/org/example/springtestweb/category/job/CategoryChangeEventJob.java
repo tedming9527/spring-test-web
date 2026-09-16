@@ -56,20 +56,16 @@ public class CategoryChangeEventJob {
       if (replicaCategory == null) {
         scheduleRetry(event);
         continue;
-      } else if (replicaCategory.getCategoryVersion() >= event.getCategoryVersion()) {
-        event.setStatus("SUCCESS");
-      } else {
+      } else if (replicaCategory.getCategoryVersion() < event.getCategoryVersion()) {
         int effectRows = replicaCategoryMapper.syncReplicaNameIfVersionMatches(
           event.getCategoryId(), name, event.getCategoryVersion()
         );
-        if (effectRows == 1) {
-          event.setStatus("SUCCESS");
-        } else {
+        if (effectRows == 0) {
           scheduleRetry(event);
           continue;
         }
       }
-      categoryChangeEventMapper.updateById(event);
+      categoryChangeEventMapper.markSuccess(event.getId(), "system");
     }
 
     int claimedCount = events.size();
@@ -77,12 +73,11 @@ public class CategoryChangeEventJob {
     XxlJobHelper.log("category change event probe parameter={}, claimedCount={}", parameter, claimedCount);
   }
 
-  private boolean scheduleRetry(CategoryChangeEvent event) {
+  private void scheduleRetry(CategoryChangeEvent event) {
     if (event.getRetryCount() > 3) {
       categoryChangeEventMapper.markFailed(event.getId(), "system", event.getLastError());
-      return false;
+      return;
     }
     categoryChangeEventMapper.rescheduleForRetry(event.getId(), "system", event.getLastError());
-    return true;
   }
 }

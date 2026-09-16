@@ -345,6 +345,8 @@ Spring代理调用边界已学习：学员已理解代理对象包裹Spring Bean
 
 2026-09-16：payload 解析失败的批处理隔离已验收。`CategoryChangeEventJob` 在单条事件 payload 解析失败时记录 Job 日志与 `lastError`，由专用 Mapper SQL 将未超上限的事件恢复为 `PENDING`、递增 `retryCount`、设置下一次重试时间并清空领取令牌/租约；达到上限时由专用 SQL 标记 `FAILED`。三条失败路径均在状态转换后 `continue`，不再用内存旧对象 `updateById()` 覆盖数据库状态。`./mvnw -q -DskipTests compile` 通过。人工 XXL-JOB 批量验收：教学事件 `id=116`（非法 payload）最终为 `PENDING/retry_count=1/last_error=事件payload非法, eventId=116/processing_token=NULL/processing_lease_until=NULL`，事件 `id=117`（合法重复事件）最终为 `SUCCESS/retry_count=0`，证明坏事件不会阻断同批正常事件。学员在提示下完成状态转换与参数传递。发现 P1：成功事件 `id=117` 仍保留领取时的 `processing_token` 与 `processing_lease_until`；不影响状态排除和本课验收，但终态元数据应在下一课用专用成功 SQL 清理。下一步：实现并验收成功事件回写时清除领取元数据。
 
+2026-09-16：成功终态的领取元数据清理已验收。新增 `markSuccess` 专用 Mapper SQL，统一将事件设为 `SUCCESS`，并清空 `processing_token`、`processing_lease_until`、`next_retry_at` 与历史 `last_error`；Job 的版本幂等成功与从库条件更新成功均汇合到该终态转换。`./mvnw -q -DskipTests compile` 通过。人工 XXL-JOB 验收：教学事件 `id=118` 最终为 `SUCCESS/retry_count=0/last_error=NULL/next_retry_at=NULL/processing_token=NULL/processing_lease_until=NULL/updater=system`。此前 P1 已消除。下一步：为每批 Job 汇总成功、回队重试与最终失败数量，增强业务可观测性，同时保持可恢复的单事件失败不将整次 Job 标为失败。
+
 1. 设计任务表和状态机，明确待处理、处理中、成功、失败及重试次数。
 2. 接入XXL-JOB执行器，Job入口只负责参数解析和调用Service。
 3. 验证人工触发、Cron触发、失败上报和执行日志。

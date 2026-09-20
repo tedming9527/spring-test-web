@@ -355,7 +355,11 @@ Spring代理调用边界已学习：学员已理解代理对象包裹Spring Bean
 
 当前工作区存在未提交的批次结果汇总与 token 所有权保护改动，涉及 `CategoryChangeEventJob`、`CategoryChangeEventMapper` 和对应 XML；另有未跟踪 `.editorconfig`，不属于本课进度修改范围。当前改动尚待完成代码修正、针对性编译/测试与真实运行验收，不能标记为已实现或已验收。尤其要确认：终态/重试 SQL 使用当前 `processing_token` 作为条件；SQL 影响行数为 0 时不会被错误计入成功、回队或最终失败；`ProcessResult` 正确区分 `SUCCESS`、`RETRY_SCHEDULED`、`FAILED` 与未更新状态。
 
-**下一次训练唯一入口**：先修正 token 条件和 `ProcessResult` 结果映射；随后执行相应编译与测试/运行验收，核对批次日志的 success、retry、failed、notUpdated 与实际数据库最终状态一致；仅在该闭环取得证据后，再进入基础可观测性。不得跳过该入口直接开始 RabbitMQ、Nacos 或 Sentinel。
+2026-09-20：token 所有权与批次结果汇总完成代码收口（**已学习、已实现，未验收**）。学员能够独立说明：旧执行者在租约过期、事件被新 token 重新领取后不得写回成功；条件更新影响 0 行属于本次写回未生效，而非事件新增业务状态；成功、已安排重试、最终失败与未更新四类结果必须和领取数守恒。代码将单事件处理收敛为 `processEvent()` 返回 `SUCCESS`、`RETRY_SCHEDULED`、`FAILED` 或 `STATE_NOT_UPDATED`，由外层循环统一计数；终态与重试 Mapper SQL 均增加 `processing_token` 条件。单条处理异常会尝试安排重试；重试状态写回再次异常时记录日志并归入未更新，避免中断同批后续事件。`./mvnw -DskipTests compile` 与 `./mvnw -DskipTests test-compile` 均为 `BUILD SUCCESS`，但 Maven 报告类已最新，不能替代新行为的自动化或运行验收。既有 `CategoryChangeEventMapperTest` 已真实连接 MySQL 通过（两线程领取结果为 1 与 0，测试行已删除），但仅覆盖领取竞争，未覆盖本轮 token 条件写回。
+
+缺失证据：尚未新增 Mapper 测试验证 `token-B` 领取后 `token-A` 调用 `markSuccess()` 影响 0 行且数据库仍为 `PROCESSING/token-B`；尚未验证重试、最终失败、未更新四类计数与领取数一致；尚未在真实 XXL-JOB 调度中完成数据库终态与批次日志对账。测试应先插入最小事件（数据库默认 `PENDING/retryCount=0`），再用 `claimPendingEvent(..., "token-B", ...)` 构造前置状态，最后执行旧 token 写回并在 `finally` 精确删除测试事件。
+
+**下一次训练唯一入口**：先补 `CategoryChangeEventMapperTest` 的旧 token 写回拒绝测试，再覆盖重试、最终失败与未更新的 Mapper 分支；随后执行真实 XXL-JOB 调度，核对批次日志的 success、retry、failed、notUpdated 与实际数据库最终状态一致。仅在该闭环取得证据后，再进入基础可观测性。不得跳过该入口直接开始 RabbitMQ、Nacos 或 Sentinel。
 
 1. 设计任务表和状态机，明确待处理、处理中、成功、失败及重试次数。
 2. 接入XXL-JOB执行器，Job入口只负责参数解析和调用Service。

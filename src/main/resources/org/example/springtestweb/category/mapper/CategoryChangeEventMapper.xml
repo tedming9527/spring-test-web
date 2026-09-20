@@ -35,6 +35,7 @@
             update_time = CURRENT_TIMESTAMP,
             last_error = #{lastError}
         WHERE id = #{id}
+            AND processing_token = #{processingToken}
     </update>
     <update id="markFailed">
         UPDATE category_change_event
@@ -47,6 +48,7 @@
         update_time = CURRENT_TIMESTAMP,
         last_error = #{lastError}
         WHERE id = #{id}
+            AND processing_token = #{processingToken}
     </update>
     <update id="markSuccess">
         UPDATE category_change_event
@@ -58,6 +60,7 @@
         update_time = CURRENT_TIMESTAMP,
         last_error = NULL
         WHERE id = #{id}
+            AND processing_token = #{processingToken}
     </update>
     <update id="recoverExpiredProcessingEvents">
         UPDATE category_change_event

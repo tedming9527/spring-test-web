@@ -71,4 +71,30 @@ public class CategoryChangeEventMapperTest {
     }
   }
 
+  @Test
+  void markSuccess_shouldRejectStaleProcessingToken() {
+    CategoryChangeEvent event = new CategoryChangeEvent();
+    event.setCategoryId(1101L);
+    event.setCategoryVersion(System.currentTimeMillis());
+    event.setEventType("CATEGORY_NAME_CHANGED");
+    event.setPayload("{\"name\":\"CLAIM_TEST\"}");
+    try {
+      eventMapper.insert(event);
+
+      int claimed = eventMapper.claimPendingEvent(event.getId(), "token-B", 60, "system");
+      assertEquals(1, claimed);
+      int updated = eventMapper.markSuccess(event.getId(), "token-A", "system");
+      assertEquals(0, updated);
+
+      CategoryChangeEvent dbEvent = eventMapper.selectById(event.getId());
+      assertNotNull(dbEvent);
+      assertEquals("PROCESSING", dbEvent.getStatus());
+      assertEquals("token-B", dbEvent.getProcessingToken());
+    } finally {
+      if (event.getId() != null) {
+        eventMapper.deleteById(event.getId());
+      }
+    }
+  }
+
 }

@@ -80,6 +80,8 @@ public class CategoryChangeEventJob {
         case STATE_NOT_UPDATED:
           notUpdatedCnt++;
           break;
+        default:
+          throw new IllegalStateException("未知的处理结果: " + result);
       }
 
     }

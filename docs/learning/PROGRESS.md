@@ -361,7 +361,9 @@ Spring代理调用边界已学习：学员已理解代理对象包裹Spring Bean
 
 2026-09-22：旧 token 成功写回拒绝实验已验收。学员先辨析了 Mapper 层 token 条件 SQL 与 Job 层四类结果统计的测试边界，并独立补充 `CategoryChangeEventMapperTest.markSuccess_shouldRejectStaleProcessingToken()`。测试向真实 MySQL 插入一条由数据库默认生成 `PENDING` 状态的事件，使用 `token-B` 调用 `claimPendingEvent()` 影响 1 行，再由旧执行者使用 `token-A` 调用 `markSuccess()` 影响 0 行；重新查询确认事件仍为 `PROCESSING/token-B`，`finally` 按事件 ID 删除测试行且 SQL 影响 1 行。`./mvnw -Dtest=CategoryChangeEventMapperTest#markSuccess_shouldRejectStaleProcessingToken test` 输出 `Tests run: 1, Failures: 0, Errors: 0, Skipped: 0` 与 `BUILD SUCCESS`。IDEA 内置 JUnit Runner 因其 bundled runner 与项目 JUnit Platform API 不兼容，在进入测试前抛出 `NoSuchMethodError`；本次验收使用项目 Maven/Surefire 运行器，不把该 IDE 启动错误误判为测试失败。测试启动时因正在运行的业务应用占用 XXL-JOB 9999 端口出现旁路告警，但未影响 Mapper SQL、最终状态和清理证据。
 
-**下一次训练唯一入口**：继续为 `rescheduleForRetry()` 与 `markFailed()` 补旧 token 写回拒绝的真实 Mapper 测试，确认影响 0 行且数据库仍保持 `PROCESSING/token-B`；再覆盖 Job 四类结果守恒并执行真实 XXL-JOB 调度，对账批次日志与数据库终态。仅在该闭环取得证据后，再进入基础可观测性。不得跳过该入口直接开始 RabbitMQ、Nacos 或 Sentinel。
+2026-09-23：旧 token 的重试与最终失败写回拒绝已验收。学员独立补充 `rescheduleForRetry_shouldRejectStaleProcessingToken()` 与 `markFailed_shouldRejectStaleProcessingToken()`：每个测试插入最小 `PENDING` 事件，由 `token-B` 真实领取为 `PROCESSING`，再让旧 `token-A` 分别调用回队重试和最终失败 Mapper。两次旧 token 写回均影响 0 行；重新查询确认事件仍为 `PROCESSING/processing_token=token-B/retry_count=0`，并在 `finally` 精确删除测试行。运行证据：`./mvnw -Dtest=CategoryChangeEventMapperTest#rescheduleForRetry_shouldRejectStaleProcessingToken,CategoryChangeEventMapperTest#markFailed_shouldRejectStaleProcessingToken test` 输出 `Tests run: 2, Failures: 0, Errors: 0, Skipped: 0` 与 `BUILD SUCCESS`。测试期间 XXL-JOB 9999 端口仍有旁路占用告警，未影响 MySQL Mapper SQL、断言或清理结果。至此，`markSuccess`、`rescheduleForRetry`、`markFailed` 三种写回出口均有旧 token 拒绝的真实自动化证据；本项状态为**已验收**。
+
+**下一次训练唯一入口**：覆盖 Job 四类结果的计数守恒，并执行真实 XXL-JOB 调度，对账批次日志与数据库终态；仅在该闭环取得证据后，再进入基础可观测性。不得跳过该入口直接开始 RabbitMQ、Nacos 或 Sentinel。
 
 1. 设计任务表和状态机，明确待处理、处理中、成功、失败及重试次数。
 2. 接入XXL-JOB执行器，Job入口只负责参数解析和调用Service。

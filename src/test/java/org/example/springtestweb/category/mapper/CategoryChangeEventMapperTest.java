@@ -96,5 +96,55 @@ public class CategoryChangeEventMapperTest {
       }
     }
   }
+  @Test
+  void rescheduleForRetry_shouldRejectStaleProcessingToken() {
+    CategoryChangeEvent event = new CategoryChangeEvent();
+    event.setCategoryId(1101L);
+    event.setCategoryVersion(System.currentTimeMillis());
+    event.setEventType("CATEGORY_NAME_CHANGED");
+    event.setPayload("{\"name\":\"CLAIM_TEST\"}");
+    try {
+      int effectRows = eventMapper.insert(event);
+      assertEquals(1, effectRows);
+      int claimedB =  eventMapper.claimPendingEvent(event.getId(), "token-B", 60, "system");
+      assertEquals(1, claimedB);
 
+      int updated = eventMapper.rescheduleForRetry(event.getId(), "token-A", "system", "stale");
+      assertEquals(0, updated);
+      CategoryChangeEvent dbEvent = eventMapper.selectById(event.getId());
+      assertEquals("PROCESSING", dbEvent.getStatus());
+      assertEquals("token-B", dbEvent.getProcessingToken());
+      assertEquals(0, dbEvent.getRetryCount());
+    } finally {
+      if (event.getId() != null) {
+        eventMapper.deleteById(event.getId());
+      }
+    }
+  }
+  @Test
+  void markFailed_shouldRejectStaleProcessingToken() {
+    CategoryChangeEvent event = new CategoryChangeEvent();
+    event.setCategoryId(1101L);
+    event.setCategoryVersion(System.currentTimeMillis());
+    event.setEventType("CATEGORY_NAME_CHANGED");
+    event.setPayload("{\"name\":\"CLAIM_TEST\"}");
+    try {
+      int effectRows = eventMapper.insert(event);
+      assertEquals(1, effectRows);
+      int claimedB =  eventMapper.claimPendingEvent(event.getId(), "token-B", 60, "system");
+      assertEquals(1, claimedB);
+
+      int updated = eventMapper.markFailed(event.getId(), "token-A", "system", "stale");
+      assertEquals(0, updated);
+      CategoryChangeEvent dbEvent = eventMapper.selectById(event.getId());
+      assertEquals("PROCESSING", dbEvent.getStatus());
+      assertEquals("token-B", dbEvent.getProcessingToken());
+      assertEquals(0, dbEvent.getRetryCount());
+
+    } finally {
+      if (event.getId() != null) {
+        eventMapper.deleteById(event.getId());
+      }
+    }
+  }
 }

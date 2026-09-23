@@ -363,7 +363,9 @@ Spring代理调用边界已学习：学员已理解代理对象包裹Spring Bean
 
 2026-09-23：旧 token 的重试与最终失败写回拒绝已验收。学员独立补充 `rescheduleForRetry_shouldRejectStaleProcessingToken()` 与 `markFailed_shouldRejectStaleProcessingToken()`：每个测试插入最小 `PENDING` 事件，由 `token-B` 真实领取为 `PROCESSING`，再让旧 `token-A` 分别调用回队重试和最终失败 Mapper。两次旧 token 写回均影响 0 行；重新查询确认事件仍为 `PROCESSING/processing_token=token-B/retry_count=0`，并在 `finally` 精确删除测试行。运行证据：`./mvnw -Dtest=CategoryChangeEventMapperTest#rescheduleForRetry_shouldRejectStaleProcessingToken,CategoryChangeEventMapperTest#markFailed_shouldRejectStaleProcessingToken test` 输出 `Tests run: 2, Failures: 0, Errors: 0, Skipped: 0` 与 `BUILD SUCCESS`。测试期间 XXL-JOB 9999 端口仍有旁路占用告警，未影响 MySQL Mapper SQL、断言或清理结果。至此，`markSuccess`、`rescheduleForRetry`、`markFailed` 三种写回出口均有旧 token 拒绝的真实自动化证据；本项状态为**已验收**。
 
-**下一次训练唯一入口**：覆盖 Job 四类结果的计数守恒，并执行真实 XXL-JOB 调度，对账批次日志与数据库终态；仅在该闭环取得证据后，再进入基础可观测性。不得跳过该入口直接开始 RabbitMQ、Nacos 或 Sentinel。
+2026-09-23：Job 四类结果计数守恒的自动化切片已实现并验收。新增 `BatchProcessSummary`，并将 `CategoryChangeEventJob` 的已领取事件处理循环提取为包可见的 `processEvents()`；其返回 `claimedCount`、成功、回队重试、最终失败和未更新四类计数，`isConserved()` 断言四类结果之和等于实际领取数。`CategoryChangeEventJobTest` 采用 JDK 动态代理模拟两个 Mapper：从库版本落后触发条件同步后成功、从库缺记录触发回队、超限重试触发最终失败、成功写回影响 0 行归入未更新。运行证据：`./mvnw -Dtest=CategoryChangeEventJobTest test` 输出 `Tests run: 1, Failures: 0, Errors: 0, Skipped: 0` 与 `BUILD SUCCESS`。当前 JDK 17 环境无法让 Mockito inline mock maker 挂载代理，故测试不使用 Mockito；这不影响该纯 Job 单测的分支与计数断言。证据边界：本项未验证真实 Mapper SQL 或 Admin 调度日志，前者由既有 Mapper 集成测试覆盖，后者仍需一次真实 XXL-JOB 触发后对账批次日志和数据库终态。本项状态为**已学习、已实现、Job 层自动化验收通过**。
+
+**下一次训练唯一入口**：执行一次真实 XXL-JOB 调度，对账批次日志与数据库终态；仅在该闭环取得证据后，再进入基础可观测性。不得跳过该入口直接开始 RabbitMQ、Nacos 或 Sentinel。
 
 1. 设计任务表和状态机，明确待处理、处理中、成功、失败及重试次数。
 2. 接入XXL-JOB执行器，Job入口只负责参数解析和调用Service。

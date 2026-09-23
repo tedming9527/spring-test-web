@@ -48,6 +48,13 @@ public class CategoryChangeEventJob {
       return;
     }
     List<CategoryChangeEvent> events = categoryChangeEventService.claimPendingEvents(batchSize, 60, "xxl-job");
+    BatchProcessSummary  summary = processEvents(events);
+    XxlJobHelper.log(
+      "category change event probe parameter={}, claimedCount={}, success={}, failed={}, retry={}, notUpdate={}",
+      parameter, summary.claimedCount, summary.successCnt, summary.failCnt, summary.retryCnt, summary.notUpdateCnt);
+  }
+
+  BatchProcessSummary processEvents(List<CategoryChangeEvent> events) {
     int successCnt = 0;
     int failCnt = 0;
     int retryCnt = 0;
@@ -83,14 +90,11 @@ public class CategoryChangeEventJob {
         default:
           throw new IllegalStateException("未知的处理结果: " + result);
       }
-
     }
 
     int claimedCount = events.size();
 
-    XxlJobHelper.log(
-        "category change event probe parameter={}, claimedCount={}, success={}, failed={}, retry={}, notUpdate={}",
-        parameter, claimedCount, successCnt, failCnt, retryCnt, notUpdatedCnt);
+    return new BatchProcessSummary(claimedCount, successCnt, failCnt, retryCnt, notUpdatedCnt);
   }
 
   private enum ProcessResult {

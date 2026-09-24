@@ -367,6 +367,8 @@ Spring代理调用边界已学习：学员已理解代理对象包裹Spring Bean
 
 **下一次训练唯一入口**：执行一次真实 XXL-JOB 调度，对账批次日志与数据库终态；仅在该闭环取得证据后，再进入基础可观测性。不得跳过该入口直接开始 RabbitMQ、Nacos 或 Sentinel。
 
+2026-09-24：真实 XXL-JOB 批次日志与数据库终态对账已验收。学员先独立预测：仅一条可领取事件、参数为 `2` 时，`claimedCount=1` 且四类结果之和为 `1`；成功后事件应为 `SUCCESS`，并清空领取 token 与租约。主库创建带 `lesson-batch-reconcile` 标识的事件 `id=132/category_id=1100/category_version=1`，从库初始分类为 `1100/食品生鲜/0`。首次触发日志为 `claimedCount=0`，但事件仍为可领取 `PENDING`；经引导核对，插入 SQL 会话的 `@@autocommit=0`，因此事件尚未提交、对 Job 的独立连接不可见。执行 `COMMIT` 后再次人工触发，XXL-JOB 日志记录 `claimedCount=1, success=1, failed=0, retry=0, notUpdate=0`，满足四类计数守恒；主库事件最终为 `SUCCESS` 且领取元数据为空，从库分类变为 `1100/lesson-batch-reconcile-v1/1`。清理后复核从库恢复 `1100/食品生鲜/0`，主库 `id=132` 已不存在。状态为**已学习、已实现、已验收**。本课还验证了：`handleCode=200` 只表示 Handler 正常结束，不能替代业务领取或数据终态证据。下一步：进入基础可观测性，先为同一批次建立可关联的事件 ID、批次统计与失败摘要日志。
+
 1. 设计任务表和状态机，明确待处理、处理中、成功、失败及重试次数。
 2. 接入XXL-JOB执行器，Job入口只负责参数解析和调用Service。
 3. 验证人工触发、Cron触发、失败上报和执行日志。

@@ -12,6 +12,7 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * @author dongdeming
@@ -35,6 +36,8 @@ public class CategoryChangeEventJob {
 
   @XxlJob("categoryChangeEventProbe")
   public void categoryChangeEventProbe() {
+    String batchId = UUID.randomUUID().toString();
+
     String parameter = XxlJobHelper.getJobParam();
     Integer batchSize = null;
     try {
@@ -48,13 +51,13 @@ public class CategoryChangeEventJob {
       return;
     }
     List<CategoryChangeEvent> events = categoryChangeEventService.claimPendingEvents(batchSize, 60, "xxl-job");
-    BatchProcessSummary  summary = processEvents(events);
+    BatchProcessSummary  summary = processEvents(events, batchId);
     XxlJobHelper.log(
-      "category change event probe parameter={}, claimedCount={}, success={}, failed={}, retry={}, notUpdate={}",
-      parameter, summary.claimedCount, summary.successCnt, summary.failCnt, summary.retryCnt, summary.notUpdateCnt);
+      "category change event probe batchId={}, parameter={}, claimedCount={}, success={}, failed={}, retry={}, notUpdate={}",
+      batchId, parameter, summary.claimedCount, summary.successCnt, summary.failCnt, summary.retryCnt, summary.notUpdateCnt);
   }
 
-  BatchProcessSummary processEvents(List<CategoryChangeEvent> events) {
+  BatchProcessSummary processEvents(List<CategoryChangeEvent> events, String batchId) {
     int successCnt = 0;
     int failCnt = 0;
     int retryCnt = 0;
@@ -63,14 +66,14 @@ public class CategoryChangeEventJob {
     for (CategoryChangeEvent event : events) {
       ProcessResult result = null;
       try {
-        result = processEvent(event);
+        result = processEvent(event, batchId);
       } catch (Exception e) {
-        XxlJobHelper.log("事件处理异常, eventId = {}, message={}", event.getId(), e.getMessage());
+        XxlJobHelper.log("事件处理异常, batchId={}, eventId = {}, message={}", batchId, event.getId(), e.getMessage());
         event.setLastError(e.getMessage());
         try {
           result = scheduleRetry(event);
         } catch (Exception retryException) {
-          XxlJobHelper.log("事件重试写回异常，eventId={}, message={}", event.getId(), retryException.getMessage());
+          XxlJobHelper.log("事件重试写回异常, batchId={}，eventId={}, message={}", batchId, event.getId(), retryException.getMessage());
           result = ProcessResult.STATE_NOT_UPDATED;
         }
       }
@@ -119,13 +122,13 @@ public class CategoryChangeEventJob {
     STATE_NOT_UPDATED
   }
 
-  private ProcessResult processEvent(CategoryChangeEvent event) {
+  private ProcessResult processEvent(CategoryChangeEvent event, String batchId) {
     String name = null;
     try {
       JsonNode jsonNode = objectMapper.readTree(event.getPayload());
       name = jsonNode.get("name").asString();
     } catch (Exception e) {
-      String error = "事件payload非法, eventId=" + event.getId();
+      String error = "事件payload非法, batchId=" + batchId + ", eventId=" + event.getId();
       XxlJobHelper.log(error);
       event.setLastError(error);
       return scheduleRetry(event);

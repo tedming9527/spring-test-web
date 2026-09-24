@@ -33,7 +33,7 @@ class CategoryChangeEventJobTest {
         eventMapper, null, replicaMapper, new ObjectMapper());
 
     BatchProcessSummary summary = job.processEvents(List.of(
-        successEvent, retryEvent, failedEvent, notUpdatedEvent));
+        successEvent, retryEvent, failedEvent, notUpdatedEvent), "test-batch");
 
     assertEquals(4, summary.getClaimedCount());
     assertEquals(1, summary.getSuccessCnt());

@@ -369,6 +369,8 @@ Spring代理调用边界已学习：学员已理解代理对象包裹Spring Bean
 
 2026-09-24：真实 XXL-JOB 批次日志与数据库终态对账已验收。学员先独立预测：仅一条可领取事件、参数为 `2` 时，`claimedCount=1` 且四类结果之和为 `1`；成功后事件应为 `SUCCESS`，并清空领取 token 与租约。主库创建带 `lesson-batch-reconcile` 标识的事件 `id=132/category_id=1100/category_version=1`，从库初始分类为 `1100/食品生鲜/0`。首次触发日志为 `claimedCount=0`，但事件仍为可领取 `PENDING`；经引导核对，插入 SQL 会话的 `@@autocommit=0`，因此事件尚未提交、对 Job 的独立连接不可见。执行 `COMMIT` 后再次人工触发，XXL-JOB 日志记录 `claimedCount=1, success=1, failed=0, retry=0, notUpdate=0`，满足四类计数守恒；主库事件最终为 `SUCCESS` 且领取元数据为空，从库分类变为 `1100/lesson-batch-reconcile-v1/1`。清理后复核从库恢复 `1100/食品生鲜/0`，主库 `id=132` 已不存在。状态为**已学习、已实现、已验收**。本课还验证了：`handleCode=200` 只表示 Handler 正常结束，不能替代业务领取或数据终态证据。下一步：进入基础可观测性，先为同一批次建立可关联的事件 ID、批次统计与失败摘要日志。
 
+2026-09-24：基础可观测性第 1 课——A（事件级结果日志）**已实现、未验收**。`CategoryChangeEventJob.processEvents()` 的 switch 四类结果各打一行事件级日志（batchId+eventId+result+reason）；`processEvent()` 各失败分支补 `event.setLastError(...)`（事件payload非法/从库记录不存在/数据同步更新失败/标记SUCCESS失败）。`CategoryChangeEventJobTest` 适配两参数 `processEvents(List, String batchId)` 签名。`./mvnw -q -DskipTests test-compile` 通过。状态：**已实现、未验收**（未在真实 XXL-JOB 调度中验证事件级日志输出）。已知待办（如实记录，不粉饰）：(1) **P0**——SUCCESS 日志占位符缺参（3 个 `{}` 仅 2 个参数，运行时会异常），须在真实 Job 验收前修复；(2) P1——reason 为 null 时未转明确占位符；(3) 可诊断性缺口——`replicaCategoryMapper` 与 `categoryChangeEventMapper` 的执行失败原因在统一 catch 处丢失来源，需区分失败阶段。下一课：修复 P0 后做 B（失败原因补全一致化）与 C（批次失败摘要），并在真实 Job 中验收事件级日志。
+
 1. 设计任务表和状态机，明确待处理、处理中、成功、失败及重试次数。
 2. 接入XXL-JOB执行器，Job入口只负责参数解析和调用Service。
 3. 验证人工触发、Cron触发、失败上报和执行日志。

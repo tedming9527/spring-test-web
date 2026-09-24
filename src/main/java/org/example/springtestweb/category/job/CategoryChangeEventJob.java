@@ -66,7 +66,7 @@ public class CategoryChangeEventJob {
     for (CategoryChangeEvent event : events) {
       ProcessResult result = null;
       try {
-        result = processEvent(event, batchId);
+        result = processEvent(event);
       } catch (Exception e) {
         XxlJobHelper.log("事件处理异常, batchId={}, eventId = {}, message={}", batchId, event.getId(), e.getMessage());
         event.setLastError(e.getMessage());
@@ -79,15 +79,19 @@ public class CategoryChangeEventJob {
       }
       switch (result) {
         case SUCCESS:
+          XxlJobHelper.log("事件执行结果： SUCCESS, batchId={}，eventId={}, message={}", batchId, event.getId());
           successCnt++;
           break;
         case FAILED:
+          XxlJobHelper.log("事件执行结果： FAILED, batchId={}，eventId={}, message={}", batchId, event.getId(), event.getLastError());
           failCnt++;
           break;
         case RETRY_SCHEDULED:
+          XxlJobHelper.log("事件执行结果： RETRY_SCHEDULED, batchId={}，eventId={}, message={}", batchId, event.getId(), event.getLastError());
           retryCnt++;
           break;
         case STATE_NOT_UPDATED:
+          XxlJobHelper.log("事件执行结果： STATE_NOT_UPDATED, batchId={}，eventId={}, message={}", batchId, event.getId(), event.getLastError());
           notUpdatedCnt++;
           break;
         default:
@@ -122,24 +126,24 @@ public class CategoryChangeEventJob {
     STATE_NOT_UPDATED
   }
 
-  private ProcessResult processEvent(CategoryChangeEvent event, String batchId) {
+  private ProcessResult processEvent(CategoryChangeEvent event) {
     String name = null;
     try {
       JsonNode jsonNode = objectMapper.readTree(event.getPayload());
       name = jsonNode.get("name").asString();
     } catch (Exception e) {
-      String error = "事件payload非法, batchId=" + batchId + ", eventId=" + event.getId();
-      XxlJobHelper.log(error);
-      event.setLastError(error);
+      event.setLastError("事件payload非法：" + event.getPayload());
       return scheduleRetry(event);
     }
     Category replicaCategory = replicaCategoryMapper.findById(event.getCategoryId());
     if (replicaCategory == null) {
+      event.setLastError("从库记录不存在");
       return scheduleRetry(event);
     } else if (replicaCategory.getCategoryVersion() < event.getCategoryVersion()) {
       int effectRows = replicaCategoryMapper.syncReplicaNameIfVersionMatches(
           event.getCategoryId(), name, event.getCategoryVersion());
       if (effectRows == 0) {
+        event.setLastError("数据同步更新失败");
         return scheduleRetry(event);
       }
     }
@@ -147,6 +151,7 @@ public class CategoryChangeEventJob {
     if (updated == 1) {
       return ProcessResult.SUCCESS;
     } else {
+      event.setLastError("标记 SUCCESS 失败");
       return ProcessResult.STATE_NOT_UPDATED;
     }
   }

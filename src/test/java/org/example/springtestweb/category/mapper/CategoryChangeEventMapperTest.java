@@ -1,19 +1,33 @@
 package org.example.springtestweb.category.mapper;
 
+import org.example.springtestweb.category.entity.Category;
 import org.example.springtestweb.category.entity.CategoryChangeEvent;
+import org.example.springtestweb.category.job.BatchProcessSummary;
+import org.example.springtestweb.category.job.CategoryChangeEventJob;
+import org.example.springtestweb.category.replica.mapper.ReplicaCategoryMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.*;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @SpringBootTest
 public class CategoryChangeEventMapperTest {
   @Autowired
   private CategoryChangeEventMapper eventMapper;
+  @Autowired
+  private CategoryChangeEventJob categoryChangeEventJob;
 
   @Test
   void claimPendingEvent_shouldAllowOnlyFirstClaim() {
@@ -146,5 +160,61 @@ public class CategoryChangeEventMapperTest {
         eventMapper.deleteById(event.getId());
       }
     }
+  }
+  @Test
+  void processEvents_shouldRetryTranslatedExceptionAndContinueNextEvent() {
+
+    Long version = System.currentTimeMillis();
+
+
+    Category category = new Category();
+    category.setId(1101L);
+    category.setName("CLAIM_TEST");
+    category.setCategoryVersion(version);
+
+    CategoryChangeEvent event1 = new CategoryChangeEvent();
+    event1.setCategoryId(1101L);
+    event1.setCategoryVersion(version);
+    event1.setProcessingToken("token-1");
+    event1.setEventType("CATEGORY_NAME_CHANGED");
+    event1.setPayload("{\"name\":\"CLAIM_TEST\"}");
+
+    CategoryChangeEvent event2 = new CategoryChangeEvent();
+    event2.setCategoryId(1101L);
+    event2.setCategoryVersion(version);
+    event2.setProcessingToken("token-2");
+    event2.setEventType("CATEGORY_NAME_CHANGED");
+    event2.setPayload("{\"name\":\"CLAIM_TEST\"}");
+
+    List<CategoryChangeEvent> events = new ArrayList<>();
+    events.add(event1);
+    events.add(event2);
+
+    String batchId = UUID.randomUUID().toString();
+
+    ReplicaCategoryMapper replicaCategoryMapper = mock(ReplicaCategoryMapper.class);
+    CategoryChangeEventMapper categoryChangeEventMapper = mock(CategoryChangeEventMapper.class);
+
+    when(replicaCategoryMapper.findById(1101L)).thenThrow(new IllegalStateException("replica timeout")).thenReturn(category);
+    when(categoryChangeEventMapper.rescheduleForRetry(anyLong(), anyString(), anyString(), anyString())).thenReturn(1);
+
+    when(replicaCategoryMapper.syncReplicaNameIfVersionMatches(anyLong(), anyString(), anyLong())).thenReturn(1);
+    when(categoryChangeEventMapper.markSuccess(anyLong(), anyString(), anyString())).thenReturn(1);
+
+    CategoryChangeEventJob job = new CategoryChangeEventJob(
+      categoryChangeEventMapper,
+      null,
+      replicaCategoryMapper,
+      new ObjectMapper()
+    );
+
+    BatchProcessSummary summary = job.processEvents(events, batchId);
+
+    assertTrue(event1.getLastError().matches("QUERY_REPLICA_FAILED"));
+    assertTrue(summary.isConserved());
+    assertEquals(1, summary.getRetryCnt());
+    assertEquals(1, summary.getSuccessCnt());
+    assertEquals(0, summary.getFailCnt());
+    assertEquals(0, summary.getNotUpdateCnt());
   }
 }

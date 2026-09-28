@@ -26,8 +26,8 @@ public class CategoryChangeEventJob {
   final ObjectMapper objectMapper;
 
   public CategoryChangeEventJob(CategoryChangeEventMapper categoryChangeEventMapper,
-      CategoryChangeEventService categoryChangeEventService, ReplicaCategoryMapper replicaCategoryMapper,
-      ObjectMapper objectMapper) {
+                                CategoryChangeEventService categoryChangeEventService, ReplicaCategoryMapper replicaCategoryMapper,
+                                ObjectMapper objectMapper) {
     this.categoryChangeEventMapper = categoryChangeEventMapper;
     this.categoryChangeEventService = categoryChangeEventService;
     this.replicaCategoryMapper = replicaCategoryMapper;
@@ -47,7 +47,7 @@ public class CategoryChangeEventJob {
       }
     } catch (Exception e) {
       XxlJobHelper.handleFail(
-          "任务参数 batchSize 必须是正整数；空参数默认 2，当前值：" + parameter);
+        "任务参数 batchSize 必须是正整数；空参数默认 2，当前值：" + parameter);
       return;
     }
     List<CategoryChangeEvent> events = categoryChangeEventService.claimPendingEvents(batchSize, 60, "xxl-job");
@@ -57,7 +57,7 @@ public class CategoryChangeEventJob {
       batchId, parameter, summary.claimedCount, summary.successCnt, summary.failCnt, summary.retryCnt, summary.notUpdateCnt);
   }
 
-  BatchProcessSummary processEvents(List<CategoryChangeEvent> events, String batchId) {
+  public BatchProcessSummary processEvents(List<CategoryChangeEvent> events, String batchId) {
     int successCnt = 0;
     int failCnt = 0;
     int retryCnt = 0;
@@ -79,7 +79,7 @@ public class CategoryChangeEventJob {
       }
       switch (result) {
         case SUCCESS:
-          XxlJobHelper.log("事件执行结果： SUCCESS, batchId={}，eventId={}, message={}", batchId, event.getId());
+          XxlJobHelper.log("事件执行结果： SUCCESS, batchId={}，eventId={}, message={}", batchId, event.getId(), "-");
           successCnt++;
           break;
         case FAILED:
@@ -135,35 +135,62 @@ public class CategoryChangeEventJob {
       event.setLastError("事件payload非法：" + event.getPayload());
       return scheduleRetry(event);
     }
-    Category replicaCategory = replicaCategoryMapper.findById(event.getCategoryId());
+
+    Category  replicaCategory = findReplica(event);
+
     if (replicaCategory == null) {
       event.setLastError("从库记录不存在");
       return scheduleRetry(event);
     } else if (replicaCategory.getCategoryVersion() < event.getCategoryVersion()) {
-      int effectRows = replicaCategoryMapper.syncReplicaNameIfVersionMatches(
-          event.getCategoryId(), name, event.getCategoryVersion());
+      int effectRows = syncReplica(event, name);
       if (effectRows == 0) {
         event.setLastError("数据同步更新失败");
         return scheduleRetry(event);
       }
     }
-    int updated = categoryChangeEventMapper.markSuccess(event.getId(), event.getProcessingToken(), "system");
-    if (updated == 1) {
-      return ProcessResult.SUCCESS;
-    } else {
-      event.setLastError("标记 SUCCESS 失败");
-      return ProcessResult.STATE_NOT_UPDATED;
+
+    return markSuccess(event);
+  }
+
+  private ProcessResult markSuccess(CategoryChangeEvent event) {
+    try {
+      int updated = categoryChangeEventMapper.markSuccess(event.getId(), event.getProcessingToken(), "system");
+      if (updated == 1) {
+        return ProcessResult.SUCCESS;
+      } else {
+        event.setLastError("标记 SUCCESS 失败");
+        return ProcessResult.STATE_NOT_UPDATED;
+      }
+    } catch (Exception error) {
+      throw  new RuntimeException("MARK_EVENT_SUCCESS_FAILED: 写回事件成功状态失败", error);
+    }
+  }
+
+  private int syncReplica(CategoryChangeEvent event, String name) {
+    try {
+        return replicaCategoryMapper.syncReplicaNameIfVersionMatches(
+        event.getCategoryId(), name, event.getCategoryVersion());
+    } catch (Exception error) {
+      throw  new RuntimeException("SYNC_REPLICA_FAILED: 同步从库分类失败", error);
+    }
+  }
+
+  private Category findReplica(CategoryChangeEvent event) {
+    try {
+      return replicaCategoryMapper.findById(event.getCategoryId());
+    } catch (Exception error) {
+      throw  new RuntimeException("QUERY_REPLICA_FAILED: 查询从库分类失败", error);
     }
   }
 
   private ProcessResult scheduleRetry(CategoryChangeEvent event) {
     if (event.getRetryCount() > 3) {
       int updated = categoryChangeEventMapper.markFailed(event.getId(), event.getProcessingToken(), "system",
-          event.getLastError());
+        event.getLastError());
       return updated == 1 ? ProcessResult.FAILED : ProcessResult.STATE_NOT_UPDATED;
     }
     int updated = categoryChangeEventMapper.rescheduleForRetry(event.getId(), event.getProcessingToken(), "system",
-        event.getLastError());
+      event.getLastError());
     return updated == 1 ? ProcessResult.RETRY_SCHEDULED : ProcessResult.STATE_NOT_UPDATED;
   }
 }

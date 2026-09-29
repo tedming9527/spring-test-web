@@ -1,6 +1,6 @@
 # Spring Boot 企业后端实战学习进度
 
-更新时间：2026-09-17
+更新时间：2026-09-29
 
 ## 使用规则
 
@@ -368,6 +368,10 @@ Spring代理调用边界已学习：学员已理解代理对象包裹Spring Bean
 **下一次训练唯一入口**：执行一次真实 XXL-JOB 调度，对账批次日志与数据库终态；仅在该闭环取得证据后，再进入基础可观测性。不得跳过该入口直接开始 RabbitMQ、Nacos 或 Sentinel。
 
 2026-09-24：真实 XXL-JOB 批次日志与数据库终态对账已验收。学员先独立预测：仅一条可领取事件、参数为 `2` 时，`claimedCount=1` 且四类结果之和为 `1`；成功后事件应为 `SUCCESS`，并清空领取 token 与租约。主库创建带 `lesson-batch-reconcile` 标识的事件 `id=132/category_id=1100/category_version=1`，从库初始分类为 `1100/食品生鲜/0`。首次触发日志为 `claimedCount=0`，但事件仍为可领取 `PENDING`；经引导核对，插入 SQL 会话的 `@@autocommit=0`，因此事件尚未提交、对 Job 的独立连接不可见。执行 `COMMIT` 后再次人工触发，XXL-JOB 日志记录 `claimedCount=1, success=1, failed=0, retry=0, notUpdate=0`，满足四类计数守恒；主库事件最终为 `SUCCESS` 且领取元数据为空，从库分类变为 `1100/lesson-batch-reconcile-v1/1`。清理后复核从库恢复 `1100/食品生鲜/0`，主库 `id=132` 已不存在。状态为**已学习、已实现、已验收**。本课还验证了：`handleCode=200` 只表示 Handler 正常结束，不能替代业务领取或数据终态证据。下一步：进入基础可观测性，先为同一批次建立可关联的事件 ID、批次统计与失败摘要日志。
+
+2026-09-29：XXL-JOB 事件状态机与 token 所有权闭卷复述、重画及核对纠错通过（**已学习**，原 D0 与 D+2/D+3 两项延期补验收完成）。学员先闭卷画出状态机与 token 竞争矩阵，经核对发现状态全集、命名和恢复条件问题后重新绘制，最终完整表达 `PENDING → PROCESSING → SUCCESS/FAILED`，并区分处理失败与租约过期恢复两个独立触发源：`retry_count <= 3` 时回到 `PENDING`，`retry_count > 3` 时进入 `FAILED`。token 竞争矩阵已表达：`PENDING` 状态下多个 token 可以竞争但只有一个领取成功；`PROCESSING/token-X` 仅当前持有 token 可以写回；`SUCCESS` 与 `FAILED` 不再领取或写回。学员还能说明：执行器宕机未主动报告失败时，下一次领取会先恢复租约过期事件。证据边界：本项是闭卷图示、重画与纠错记录，只证明状态机和 token 所有权机制能够复述；代码实现与真实运行验收仍沿用 2026-09-22 至 2026-09-24 的 Mapper 测试、Job 计数守恒测试和真实 XXL-JOB 对账证据。图中 `PROCESS ING`、`S UCCESS` 的排版空格及使用 `|` 表示“或”属于非阻塞的表达问题。
+
+2026-09-29：完成首张原理卡《Token 如何阻止旧执行者回写》（**已学习**）。学员从目标、现状与问题链开始，在不直接获取完整答案的前提下，经反馈后独立修订执行者、竞争领取、租约过期、所有权转移和条件回写之间的因果关系；最终能够说明：多个任务线程可以竞争事件，但只有领取成功者写入所有权凭证；原执行者超出租约后，事件可能恢复并被后续执行者重新领取；事件当前凭证代表当前所有权，旧执行者若在新执行者之后回写失败结果，可能覆盖已经成功的新结果，因此状态回写必须检查所有权。使用边界已收缩为 XXL-JOB 事件领取与状态回写，不泛化为所有 Redis 并发更新，也不声称 Token 能阻止未受条件写保护的外部业务副作用。证据边界：本项证明在多轮纠错后能够完成一张结构完整、边界明确的原理卡；尚不能证明首次独立成卡能力，也不新增代码实现或运行验收结论。
 
 2026-09-24：基础可观测性第 1 课——A（事件级结果日志）**已实现、未验收**。`CategoryChangeEventJob.processEvents()` 的 switch 四类结果各打一行事件级日志（batchId+eventId+result+reason）；`processEvent()` 各失败分支补 `event.setLastError(...)`（事件payload非法/从库记录不存在/数据同步更新失败/标记SUCCESS失败）。`CategoryChangeEventJobTest` 适配两参数 `processEvents(List, String batchId)` 签名。`./mvnw -q -DskipTests test-compile` 通过。状态：**已实现、未验收**（未在真实 XXL-JOB 调度中验证事件级日志输出）。已知待办（如实记录，不粉饰）：(1) **P0**——SUCCESS 日志占位符缺参（3 个 `{}` 仅 2 个参数，运行时会异常），须在真实 Job 验收前修复；(2) P1——reason 为 null 时未转明确占位符；(3) 可诊断性缺口——`replicaCategoryMapper` 与 `categoryChangeEventMapper` 的执行失败原因在统一 catch 处丢失来源，需区分失败阶段。下一课：修复 P0 后做 B（失败原因补全一致化）与 C（批次失败摘要），并在真实 Job 中验收事件级日志。
 

@@ -17,8 +17,7 @@ import java.util.UUID;
 import java.util.concurrent.*;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -216,5 +215,47 @@ public class CategoryChangeEventMapperTest {
     assertEquals(1, summary.getSuccessCnt());
     assertEquals(0, summary.getFailCnt());
     assertEquals(0, summary.getNotUpdateCnt());
+  }
+  @Test
+  void processEvents_shouldScheduleRetryWithQueryFailureReasonWhenFindByIdThrows() {
+    CategoryChangeEvent event = new CategoryChangeEvent();
+    event.setId(1L);
+    event.setCategoryId(1101L);
+    event.setRetryCount(0);
+    event.setCategoryVersion(System.currentTimeMillis());
+    event.setProcessingToken("token-A");
+    event.setPayload("{\"name\":\"CLAIM_TEST\"}");
+
+    String batchId = "test-batch";
+
+    ReplicaCategoryMapper replicaCategoryMapper = mock(ReplicaCategoryMapper.class);
+    CategoryChangeEventMapper categoryChangeEventMapper = mock(CategoryChangeEventMapper.class);
+    CategoryChangeEventJob job = new CategoryChangeEventJob(
+      categoryChangeEventMapper,
+      null,
+      replicaCategoryMapper,
+      new ObjectMapper()
+    );
+
+    when(replicaCategoryMapper.findById(1101L)).thenThrow(new IllegalStateException("replica timeout"));
+    when(categoryChangeEventMapper.rescheduleForRetry(
+      event.getId(),
+      event.getProcessingToken(),
+      "system",
+      "QUERY_REPLICA_FAILED: 查询从库分类失败"
+    )).thenReturn(1);
+
+    BatchProcessSummary summary = job.processEvents(List.of(event), batchId);
+
+    assertTrue(summary.isConserved());
+    assertEquals(1, summary.getClaimedCount());
+    assertEquals(1, summary.getRetryCnt());
+    assertEquals(0, summary.getSuccessCnt());
+    assertEquals(0, summary.getFailCnt());
+    assertEquals(0, summary.getNotUpdateCnt());
+    assertEquals(
+      "QUERY_REPLICA_FAILED: 查询从库分类失败",
+      event.getLastError()
+    );
   }
 }

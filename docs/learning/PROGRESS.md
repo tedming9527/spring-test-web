@@ -375,6 +375,10 @@ Spring代理调用边界已学习：学员已理解代理对象包裹Spring Bean
 
 2026-09-24：基础可观测性第 1 课——A（事件级结果日志）**已实现、未验收**。`CategoryChangeEventJob.processEvents()` 的 switch 四类结果各打一行事件级日志（batchId+eventId+result+reason）；`processEvent()` 各失败分支补 `event.setLastError(...)`（事件payload非法/从库记录不存在/数据同步更新失败/标记SUCCESS失败）。`CategoryChangeEventJobTest` 适配两参数 `processEvents(List, String batchId)` 签名。`./mvnw -q -DskipTests test-compile` 通过。状态：**已实现、未验收**（未在真实 XXL-JOB 调度中验证事件级日志输出）。已知待办（如实记录，不粉饰）：(1) **P0**——SUCCESS 日志占位符缺参（3 个 `{}` 仅 2 个参数，运行时会异常），须在真实 Job 验收前修复；(2) P1——reason 为 null 时未转明确占位符；(3) 可诊断性缺口——`replicaCategoryMapper` 与 `categoryChangeEventMapper` 的执行失败原因在统一 catch 处丢失来源，需区分失败阶段。下一课：修复 P0 后做 B（失败原因补全一致化）与 C（批次失败摘要），并在真实 Job 中验收事件级日志。
 
+2026-09-30：基础可观测性第 2 课——查询从库异常的阶段标识传递已完成运行验证（**已学习、已实现、分支行为已验收，测试分层待整理**）。学员先按 `categoryChangeEventProbe → processEvents → processEvent → scheduleRetry → Mapper` 分层辨析测试入口与目标分支，确认本实验从 `processEvents()` 开始，不覆盖 Handler 参数解析、真实事件领取、Mapper SQL 或 Admin 日志。随后独立补充 `processEvents_shouldScheduleRetryWithQueryFailureReasonWhenFindByIdThrows()`：构造已领取事件 `id=1/categoryId=1101/retryCount=0/token-A`，模拟 `ReplicaCategoryMapper.findById()` 抛出 `replica timeout`，并断言异常被翻译为稳定摘要 `QUERY_REPLICA_FAILED: 查询从库分类失败`、使用原事件 ID 与 token 安排重试、结果为 `RETRY_SCHEDULED`，且领取数与四类结果计数守恒。运行证据：学员本机输出 `Tests run: 1, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`，完成时间 `2026-09-30T16:58:22+08:00`。JVM 的 class sharing warning 属 Mockito 运行旁路提示，未影响测试结果；平台隔离环境复跑因禁止连接本机 MySQL，在 `@SpringBootTest` 加载 Flyway 时以 `Operation not permitted` 失败，未进入测试方法，不覆盖学员本机证据。当前按学员决定暂不移动测试，该方法仍位于 `CategoryChangeEventMapperTest` 的 `@SpringBootTest` 环境，因此行为证据有效，但不能表述为边界纯净的 Job 单元测试；后续应移入 `CategoryChangeEventJobTest`，并修正既有 `processEvents_shouldRetryTranslatedExceptionAndContinueNextEvent()` 中缺少事件 ID、`retryCount` 以及 `matches()` 全串匹配的问题。
+
+本课学员复盘：已认识到应先根据业务分层和决策分支确定测试入口、关键节点与出口；当前不足为测试名称起初未准确表达行为、事件数据未贴合被测入口所要求的“已持久化且已领取”完整前置状态、以及无法稳定选取验证点。后续训练将验证点固定从业务契约反推：先断言主结果，再断言关键副作用/传参，最后断言批次不变量；不以断言数量代替覆盖质量。下一步：补齐同一阶段矩阵中的“更新从库异常”和“成功状态写回异常”分支，再做一次真实 XXL-JOB 事件日志验收。
+
 1. 设计任务表和状态机，明确待处理、处理中、成功、失败及重试次数。
 2. 接入XXL-JOB执行器，Job入口只负责参数解析和调用Service。
 3. 验证人工触发、Cron触发、失败上报和执行日志。

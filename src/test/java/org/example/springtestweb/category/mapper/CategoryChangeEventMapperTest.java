@@ -172,6 +172,8 @@ public class CategoryChangeEventMapperTest {
     category.setCategoryVersion(version);
 
     CategoryChangeEvent event1 = new CategoryChangeEvent();
+    event1.setId(1L);
+    event1.setRetryCount(0);
     event1.setCategoryId(1101L);
     event1.setCategoryVersion(version);
     event1.setProcessingToken("token-1");
@@ -179,6 +181,8 @@ public class CategoryChangeEventMapperTest {
     event1.setPayload("{\"name\":\"CLAIM_TEST\"}");
 
     CategoryChangeEvent event2 = new CategoryChangeEvent();
+    event2.setId(2L);
+    event2.setRetryCount(0);
     event2.setCategoryId(1101L);
     event2.setCategoryVersion(version);
     event2.setProcessingToken("token-2");
@@ -209,7 +213,7 @@ public class CategoryChangeEventMapperTest {
 
     BatchProcessSummary summary = job.processEvents(events, batchId);
 
-    assertTrue(event1.getLastError().matches("QUERY_REPLICA_FAILED"));
+    assertEquals("QUERY_REPLICA_FAILED: 查询从库分类失败", event1.getLastError());
     assertTrue(summary.isConserved());
     assertEquals(1, summary.getRetryCnt());
     assertEquals(1, summary.getSuccessCnt());

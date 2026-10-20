@@ -1,6 +1,6 @@
 # Spring Boot 企业后端实战学习进度
 
-更新时间：2026-09-29
+更新时间：2026-10-20
 
 ## 使用规则
 
@@ -427,3 +427,11 @@ Spring代理调用边界已学习：学员已理解代理对象包裹Spring Bean
 5. 先确认当前企业业务切片和本课交付物；只引入一个新机制和一个故障场景。
 6. 每完成一课判断“已学习、已实现、已验收”，但不得因单个基础设施边界未生产级闭环而长期阻塞下一业务阶段。
 ```
+
+## 2026-10-20：异常翻译遗留测试收口
+
+- 用户明确授权 AI 代修并复跑 `CategoryChangeEventMapperTest#processEvents_shouldRetryTranslatedExceptionAndContinueNextEvent`：两条事件分别补齐 `id=1/2`、`retryCount=0`，将 `matches()` 改为完整摘要 `QUERY_REPLICA_FAILED: 查询从库分类失败` 的精确相等断言。
+- 状态：**已实现、目标测试自动化验收通过**；本次为 AI 代修和代跑，不新增学员独立掌握结论。
+- 真实运行证据：Java 17、已恢复的本地 MySQL 9.7.2，`Tests run: 1, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`，完成于 `2026-10-20T14:34:49+08:00`。完整输出保留在本机 `/private/tmp/xxl-job-exception-fixed-20261020.log`，不属于跨设备仓库证据。
+- 已通过原有断言：异常摘要、重试 1 条、后续成功 1 条、失败及未更新均为 0、批次计数守恒。模拟 Mapper 的测试不证明真实 SQL 或 Admin 调度行为；测试仍暂留 `@SpringBootTest` 的 Mapper 测试类中。
+- 关联提交：本节与测试修复同次提交（`test: fix translated exception retry assertions`），用户已明确授权本地提交，不推送。下一步：延续更新从库异常、成功状态写回异常分支训练，再做真实 XXL-JOB 事件日志验收。

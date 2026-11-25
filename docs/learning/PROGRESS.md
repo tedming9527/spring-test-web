@@ -435,3 +435,17 @@ Spring代理调用边界已学习：学员已理解代理对象包裹Spring Bean
 - 真实运行证据：Java 17、已恢复的本地 MySQL 9.7.2，`Tests run: 1, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`，完成于 `2026-10-20T14:34:49+08:00`。完整输出保留在本机 `/private/tmp/xxl-job-exception-fixed-20261020.log`，不属于跨设备仓库证据。
 - 已通过原有断言：异常摘要、重试 1 条、后续成功 1 条、失败及未更新均为 0、批次计数守恒。模拟 Mapper 的测试不证明真实 SQL 或 Admin 调度行为；测试仍暂留 `@SpringBootTest` 的 Mapper 测试类中。
 - 关联提交：本节与测试修复同次提交（`test: fix translated exception retry assertions`），用户已明确授权本地提交，不推送。下一步：延续更新从库异常、成功状态写回异常分支训练，再做真实 XXL-JOB 事件日志验收。
+
+## 2026-11-25 异常翻译断言复跑
+
+**已实现，目标用例已验收。** 关联代码提交 `4445769`。学员最初预测为同步失败，经提示核对 `findById()` 的调用位置后，将预期摘要修正为 `QUERY_REPLICA_FAILED: 查询从库分类失败`。首次尝试因 jenv 的旧启动路径中止。随后学员亲自复跑，导师核对 Surefire XML 中唯一的用例为 `CategoryChangeEventMapperTest#processEvents_shouldRetryTranslatedExceptionAndContinueNextEvent`。
+
+2026-11-25 15:13:26（北京时间）完成。`Tests run: 1, Failures: 0, Errors: 0, Skipped: 0`，`BUILD SUCCESS`。已将[完整 Maven 输出](evidence/2026-11-25-xxl-job-exception.txt)与本机原始日志逐字节核对。
+
+复核结论：模拟从库查询超时后，首条事件的异常摘要精确匹配并计入重试，第二条继续处理并成功。两条事件合计重试 1、成功 1、最终失败 0、未更新 0，计数守恒。验收范围为模拟 Mapper 的 Job 分支。
+
+## 2026-11-25 主线概念回顾
+
+学员因间隔学习，要求从项目搭建重新复习到 XXL-JOB，并采用“学员提问、导师逐项回答”的方式。已讨论 JDK 与 jenv、IDEA 项目 SDK、Maven 构建和 POM 的坐标、项目版本、打包方式、parent、properties、dependencyManagement、dependencies、optional 和 scope。学员已结合前端经验说明工具库与应用的版本管理区别，并将父 POM 的 dependencyManagement 理解为维护依赖版本基线。本轮为概念复习，尚未重新进行独立迁移与运行验收。
+
+当前断点：刚讨论 scope 在本机构建、测试和部署运行时的范围。下一次按学员提问继续复习；若继续逐项讲解 POM，衔接 scope 的疑问及依赖传递，之后逐步回到项目启动、业务链和 XXL-JOB。异常翻译下一分支训练暂缓至概念回顾之后。

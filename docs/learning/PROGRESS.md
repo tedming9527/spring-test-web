@@ -449,3 +449,15 @@ Spring代理调用边界已学习：学员已理解代理对象包裹Spring Bean
 学员因间隔学习，要求从项目搭建重新复习到 XXL-JOB，并采用“学员提问、导师逐项回答”的方式。已讨论 JDK 与 jenv、IDEA 项目 SDK、Maven 构建和 POM 的坐标、项目版本、打包方式、parent、properties、dependencyManagement、dependencies、optional 和 scope。学员已结合前端经验说明工具库与应用的版本管理区别，并将父 POM 的 dependencyManagement 理解为维护依赖版本基线。本轮为概念复习，尚未重新进行独立迁移与运行验收。
 
 当前断点：刚讨论 scope 在本机构建、测试和部署运行时的范围。下一次按学员提问继续复习；若继续逐项讲解 POM，衔接 scope 的疑问及依赖传递，之后逐步回到项目启动、业务链和 XXL-JOB。异常翻译下一分支训练暂缓至概念回顾之后。
+
+## 2026-11-26 Maven 复习断点与变量专题
+
+继续按学员提问逐项复习，已讨论 `provided`、`runtime`、`system`、`import`、依赖排除、构建插件、资源复制、Maven 资源过滤、profile、settings、Wrapper 和构建生命周期。概念讲解尚无独立实践验收证据。
+
+学员要求后续安排“系统中的各种变量”专题培训。待覆盖截图中的 Maven 资源过滤值来源：项目字段（如 `${project.version}`）、POM 自定义属性、环境变量、Java 系统属性、命令行 `-D` 属性、通过 `<filters>` 指定的属性文件。结合实际项目进一步区分 Shell 环境变量、Maven 构建属性、Java 系统属性与 Spring 运行时配置，讲清写法、作用范围、读取时机和来源关系，再通过学员操作验证。该专题已登记，尚未开展。
+
+## 2026-11-26 Maven 分级考试断点
+
+按学员要求先评估 P0、P1、P2 的知识缺口，再逐阶段考试。P0 理论题暂通过：学员能回答依赖基线不会自动引入依赖、直接依赖沿用管理版本、`compile/test/runtime` 的基本选择、测试前先编译、`package` 打包，以及 `Tests run: 0` 不能证明测试通过。对传递依赖的回答经提示补充了 `optional`、`scope` 和 `exclusions` 的边界。Wrapper 题目原先表述含糊，学员准确指出歧义；随后讲解项目通过 `.mvn/wrapper/maven-wrapper.properties` 指定 Maven 版本。P0 当前是理论复习结论，独立实操与迁移能力尚未验收。
+
+P1 待先补课，再考试：学习依赖冲突选择规则、`dependency:tree` 的实际阅读，区分生效 POM 解析出的依赖树与构建产物实际包含的内容。导师曾在 P0 提前提出该问题，且题干将两者混淆，已纠正，不计入 P0 评分。P2 待补 `pluginManagement`、多模块构建与版本联动的具体操作后考试。用户指定完成各阶段缺口评估后再考试，按实际回答和操作判断状态。

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f4f7fb">
+  <title>资源过滤 · 变量来源图谱</title><link rel="stylesheet" href="styles.css"><script src="atlas.js" defer></script>
+</head>
+<body data-scenario="filtering">
+  <header class="topbar"><a class="brand" href="index.html"><span class="brand-mark">V</span><span>学习知识库 <small>VARIABLE ATLAS</small></span></a><a class="top-link" href="index.html">返回知识库</a></header>
+  <main class="detail-layout">
+    <aside class="sidebar"><div class="side-heading">变量来源图谱</div><nav aria-label="知识卡"><a class="side-link" href="pom.html"><span class="nav-mark">P</span>POM 变量替换</a><a class="side-link current" aria-current="page" href="filtering.html"><span class="nav-mark">R</span>资源过滤</a><span class="side-link disabled"><span class="nav-mark">S</span>Spring Boot <small>后续</small></span></nav><div class="side-caption">Maven 3.9.12<br>Resources Plugin 3.5.0</div></aside>
+    <article class="article">
+      <div class="crumb"><a href="index.html">配置与构建</a><span>/</span><span>资源过滤</span></div>
+      <div class="article-heading"><div><p class="eyebrow"><span class="eyebrow-line"></span> RESOURCE FILTERING</p><h1>资源过滤</h1><p class="article-intro">从待复制的资源文件开始，观察构建时的属性来源与替换结果。</p></div><span class="version">Resources Plugin 3.5.0</span></div>
+      <div class="choice-bar"><div><label for="variable-mode">变量写法</label><select id="variable-mode"><option value="ordinary">普通属性 · @app.label@</option><option value="env">环境变量 · @env.APP_LABEL@</option></select></div><p>切换写法，再勾选已提供值的来源。</p></div>
+      <section class="diagram-section" aria-labelledby="diagram-title"><div class="diagram-header"><div><span class="section-kicker">RESOLUTION PATH</span><h2 id="diagram-title">查找路径</h2></div><span class="legend"><i></i> 命中后停止查找</span></div><div id="diagram" class="fishbone"></div><noscript>此知识卡需要启用 JavaScript 以展示查找路径。</noscript></section>
+      <section class="details"><h2>读图时留意</h2><div class="detail-grid"><div><h3>处理发生在构建时</h3><p>Maven 读取源文件并复制替换后的内容。产物里的值在本次构建时确定，源文件保持原样。</p></div><div><h3>过滤格式与范围</h3><p>当前项目的 Spring Boot 父 POM 使用 <code>@...@</code> 分隔符。示例适用于已启用过滤的文本资源。</p></div></div>
+        <div class="code-example"><h3>资源与传值示例</h3><p>假设资源文件启用了过滤，可以通过 POM 属性或本次命令提供值。</p><pre><code># src/main/resources-filtered/application.properties
+app.label=@app.label@
+
+# pom.xml 中的 properties
+&lt;app.label&gt;pom-value&lt;/app.label&gt;</code></pre><pre><code>./mvnw package -Dapp.label=cli-value</code></pre></div>
+        <div class="code-example"><h3>过滤属性文件</h3><p>在构建配置的 <code>filters</code> 中指定属性文件，再对专门存放文本资源的目录启用过滤，其他资源原样复制。</p><pre><code>&lt;build&gt;
+    &lt;filters&gt;
+        &lt;filter&gt;filters/build.properties&lt;/filter&gt;
+    &lt;/filters&gt;
+    &lt;resources&gt;
+        &lt;resource&gt;
+            &lt;directory&gt;src/main/resources&lt;/directory&gt;
+            &lt;filtering&gt;false&lt;/filtering&gt;
+        &lt;/resource&gt;
+        &lt;resource&gt;
+            &lt;directory&gt;src/main/resources-filtered&lt;/directory&gt;
+            &lt;filtering&gt;true&lt;/filtering&gt;
+        &lt;/resource&gt;
+    &lt;/resources&gt;
+&lt;/build&gt;</code></pre><p>图中的顺序限于 Maven 3.9.12、Resources Plugin 3.5.0 的同名普通属性示例。</p></div>
+        <a class="source-link" href="https://maven.apache.org/guides/mini/guide-filtering-resources.html">Maven 资源过滤指南</a>
+      </section>
+    </article>
+  </main>
+  <footer class="footer">spring-test-web <span>·</span> 知识库</footer>
+</body>
+</html>

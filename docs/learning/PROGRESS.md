@@ -461,3 +461,17 @@ Spring代理调用边界已学习：学员已理解代理对象包裹Spring Bean
 按学员要求先评估 P0、P1、P2 的知识缺口，再逐阶段考试。P0 理论题暂通过：学员能回答依赖基线不会自动引入依赖、直接依赖沿用管理版本、`compile/test/runtime` 的基本选择、测试前先编译、`package` 打包，以及 `Tests run: 0` 不能证明测试通过。对传递依赖的回答经提示补充了 `optional`、`scope` 和 `exclusions` 的边界。Wrapper 题目原先表述含糊，学员准确指出歧义；随后讲解项目通过 `.mvn/wrapper/maven-wrapper.properties` 指定 Maven 版本。P0 当前是理论复习结论，独立实操与迁移能力尚未验收。
 
 P1 待先补课，再考试：学习依赖冲突选择规则、`dependency:tree` 的实际阅读，区分生效 POM 解析出的依赖树与构建产物实际包含的内容。导师曾在 P0 提前提出该问题，且题干将两者混淆，已纠正，不计入 P0 评分。P2 待补 `pluginManagement`、多模块构建与版本联动的具体操作后考试。用户指定完成各阶段缺口评估后再考试，按实际回答和操作判断状态。
+
+## 2026-11-27 结构化表达与考试接续
+
+学员口述复习了 JDK、Maven 与 POM 结构，经反馈梳理为项目身份、依赖、构建发布和配置来源四个问题；教学文档保存在 iCloud 教学目录。学员先以“哪些阶段生效、能否继承”归纳依赖字段，经反馈区分传递与继承，并在下一题自行将 Maven 生命周期收窄到 default 的构建阶段。这是有反馈的练习，独立迁移仍待验证。学员要求后续不定期练习提炼上层问题，教学策略已登记。
+
+当前继续 P1：先补依赖冲突选择和依赖树阅读，再依次考试。变量专题仍待开展。
+
+本轮已整理两张知识卡：[用四个问题读懂 POM](../knowledge/pom-four-questions.md) 和 [Maven 属性从哪里来](../knowledge/maven-properties-and-variables.md)。变量来源已结合 MySQL 驱动版本追查进行了讲解，完整专题练习与独立验收仍待进行；P1 实操已由学员查询 MySQL 驱动依赖树并在提示下追查 effective POM，接续从未完成的命令行属性验证继续。
+
+### 变量来源图谱与 P1 实操进展
+
+学员独立运行 `./mvnw dependency:tree -Dverbose -Dincludes=com.mysql:mysql-connector-j`，输出显示 MySQL 驱动为当前项目直接依赖、版本 `9.7.0`、scope 为 `runtime`。在提示下使用 effective POM 并检查 `dependencyManagement` 的实际范围，追查到 Spring Boot 的管理规则；学员指出截取片段不足以证明所属层级，也指出插值后的注释无法单独证明属性值定义位置。导师核对原始 POM 后确认管理规则引用 `${mysql.version}`，原始属性定义为 `9.7.0`。P1 理论练习和该项有提示的实操已有证据，独立完成完整版本来源追查仍待验证。
+
+学员希望使用“场景 → 变量写法 → 按优先级查找 → 结果”的交互式鱼骨图，并让每个节点展示写法与特殊说明。项目知识库新增[变量来源图谱](../knowledge/variable-atlas/index.html)，当前有 POM 插值和 Maven 资源过滤两张卡；Spring Boot 运行时配置留作后续专题。示例覆盖普通属性及显式 `env.` 引用。验证限定在当前 Maven 3.9.12、Resources Plugin 3.5.0 的最小实验，不能当作所有特殊属性和插件的通用排序。下次继续未完成的命令行属性验证，再完成 P1 独立实操和 P2 补课考试；变量完整专题仍需结合 Spring 运行时继续。
